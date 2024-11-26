@@ -117,7 +117,7 @@ class AIAdvisor:
                     implementation_date,
                     effectiveness_rating
                 FROM ai_suggestion_history
-                WHERE manager_id = %(manager_id)s
+                WHERE manager_id = :manager_id
                 ORDER BY created_at DESC;
             ''')
             
