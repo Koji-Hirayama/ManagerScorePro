@@ -26,10 +26,16 @@ except Exception as e:
     st.stop()
 
 # Initialize AI advisor
-try:
-    st.session_state.ai_advisor = AIAdvisor()
-except Exception as e:
-    st.warning("AI機能は現在利用できません。基本機能のみ使用可能です。")
+if 'ai_advisor' not in st.session_state:
+    try:
+        st.session_state.ai_advisor = AIAdvisor()
+    except Exception as e:
+        st.warning(f"AI機能の初期化中にエラーが発生しました: {str(e)}")
+        st.session_state.ai_advisor = None
+
+# Ensure OpenAI API key is available
+if not os.getenv('OPENAI_API_KEY'):
+    st.error("OpenAI APIキーが設定されていません。AI機能は利用できません。")
     st.session_state.ai_advisor = None
 
 # Main content

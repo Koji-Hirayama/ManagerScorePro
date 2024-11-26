@@ -69,14 +69,22 @@ try:
         )
     
     # AI提案
-    if st.session_state.ai_advisor:
-        st.subheader("個別AI改善提案")
+    st.subheader("個別AI改善提案")
+    if not st.session_state.get('ai_advisor'):
+        st.warning("AI機能は現在利用できません。システム管理者に確認してください。")
+    else:
         try:
-            individual_scores = format_scores_for_ai(latest_scores)
-            ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(individual_scores)
-            st.write(ai_suggestions)
+            with st.spinner("AI提案を生成中..."):
+                individual_scores = format_scores_for_ai(latest_scores)
+                ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(individual_scores)
+                if ai_suggestions and "エラー" not in ai_suggestions:
+                    st.write(ai_suggestions)
+                else:
+                    st.warning("AI提案の生成中にエラーが発生しました。しばらく時間をおいて再度お試しください。")
         except Exception as e:
-            st.warning("AI提案の生成中にエラーが発生しました")
+            st.error(f"AI提案の生成中にエラーが発生しました: {str(e)}")
+            if st.session_state.ai_advisor:
+                st.session_state.ai_advisor = AIAdvisor()  # AIアドバイザーを再初期化
             
     # レポート生成セクション
     st.markdown("---")
