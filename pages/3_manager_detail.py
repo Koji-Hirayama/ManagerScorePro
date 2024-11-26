@@ -2,13 +2,37 @@ import os
 from ai_advisor import AIAdvisor
 import streamlit as st
 from database import DatabaseManager
-from datetime import datetime
+from datetime import datetime, timedelta
 from visualization import create_radar_chart, create_trend_chart, create_growth_chart
 from components import display_score_details
 from utils import format_scores_for_ai
 from report_generator import generate_manager_report, export_report_to_markdown
 
 st.title("マネージャー詳細評価")
+
+# サイドバーにAI設定を追加
+with st.sidebar:
+    st.subheader("AI設定")
+    cache_hours = st.slider(
+        "キャッシュ有効期限（時間）",
+        min_value=1,
+        max_value=72,
+        value=24,
+        help="AI提案のキャッシュを保持する時間を設定します"
+    )
+    if 'ai_advisor' in st.session_state:
+        st.session_state.ai_advisor.cache_expiry = timedelta(hours=cache_hours)
+        
+        # キャッシュ状態の表示
+        stats = st.session_state.ai_advisor.cache_stats
+        st.markdown("### キャッシュ状態")
+        st.write(f"総エントリー数: {stats['total_entries']}")
+        st.write(f"有効: {stats['valid_entries']}")
+        st.write(f"期限切れ: {stats['expired_entries']}")
+        
+        if st.button("キャッシュをクリア"):
+            st.session_state.ai_advisor.clear_cache()
+            st.success("キャッシュをクリアしました")
 
 if not st.session_state.get('selected_manager'):
     st.info("ダッシュボードからマネージャーを選択してください")

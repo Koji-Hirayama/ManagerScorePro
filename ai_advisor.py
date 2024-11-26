@@ -42,6 +42,21 @@ class AIAdvisor:
         for key in expired_keys:
             del st.session_state.ai_cache[key]
 
+    @property
+    def cache_stats(self):
+        """キャッシュの統計情報を取得"""
+        return {
+            'total_entries': len(st.session_state.ai_cache),
+            'valid_entries': len([1 for _, (_, exp) in st.session_state.ai_cache.items() 
+                                if exp > datetime.now()]),
+            'expired_entries': len([1 for _, (_, exp) in st.session_state.ai_cache.items() 
+                                if exp <= datetime.now()])
+        }
+
+    def clear_cache(self):
+        """キャッシュをクリア"""
+        st.session_state.ai_cache = {}
+
     def _get_debug_response(self, scores: Dict[str, float]) -> str:
         """デバッグモード用のダミーレスポンスを生成"""
         lowest_score = min(scores.values())
