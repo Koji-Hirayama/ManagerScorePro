@@ -32,10 +32,14 @@ def display_manager_list(managers_df):
                 
             # UUIDを使用してユニークなキーを生成
             unique_key = f"btn_manager_{manager['id']}_{manager['department']}"
-            if st.button(f"{manager['name']}の詳細を見る", key=unique_key):
-                st.session_state.selected_manager = manager['id']
-                st.session_state.page = 'マネージャー詳細'
-                st.experimental_rerun()
+            try:
+                if st.button(f"{manager['name']}の詳細を見る", key=unique_key):
+                    st.session_state.selected_manager = manager['id']
+                    st.session_state.page = 'マネージャー詳細'
+                    st.rerun()
+            except Exception as e:
+                logging.error(f"ページ遷移エラー: {str(e)}")
+                st.error("ページ遷移中にエラーが発生しました。")
     except Exception as e:
         print(f"マネージャー一覧表示エラー: {str(e)}")
         st.error("マネージャー一覧の表示中にエラーが発生しました")

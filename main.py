@@ -38,9 +38,14 @@ except Exception as e:
 st.sidebar.title("ナビゲーション")
 page = st.sidebar.radio(
     "ページ選択",
-    ["ダッシュボード", "マネージャー詳細", "評価指標設定"],
+    ["ダッシュボード", "マネージャー詳細", "部門別分析", "評価指標設定"],
     key="navigation"
 )
+
+# ページ状態の更新を確実に行う
+if page != st.session_state.page:
+    st.session_state.page = page
+    st.rerun()
 
 if page == "ダッシュボード":
     st.title("企業全体のマネージャー評価ダッシュボード")
