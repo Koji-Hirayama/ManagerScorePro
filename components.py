@@ -92,6 +92,10 @@ def display_manager_list(managers_df):
         st.info("条件に一致するマネージャーが見つかりません")
         return
 
+    # 部門ごとにグループ化
+    departments = sorted(filtered_df['department'].unique())
+    department_groups = {dept: filtered_df[filtered_df['department'] == dept] for dept in departments}
+
     # カスタムCSS
     st.markdown("""
     <style>
@@ -131,6 +135,18 @@ def display_manager_list(managers_df):
         font-weight: bold;
         margin: 0 0 0.2rem 0;
     }
+    .department-header {
+        background-color: #e1e4e8;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+        font-weight: bold;
+    }
+    .department-stats {
+        font-size: 0.9rem;
+        color: #586069;
+        margin-top: 0.5rem;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -144,8 +160,27 @@ def display_manager_list(managers_df):
         st.markdown("### ⚡ アクション")
     st.markdown("<hr style='margin: 0.5rem 0'>", unsafe_allow_html=True)
 
-    # マネージャーリストの表示
-    for _, manager in filtered_df.iterrows():
+    # 部門ごとのマネージャーリスト表示
+    for department in departments:
+        dept_df = department_groups[department]
+        
+        # 部門ヘッダーと統計情報
+        st.markdown(
+            f"""
+            <div class="department-header">
+                🏢 {department}
+                <div class="department-stats">
+                    マネージャー数: {len(dept_df)}名 | 
+                    平均評価: {dept_df[['avg_communication', 'avg_support', 'avg_goal', 
+                                    'avg_leadership', 'avg_problem', 'avg_strategy']].mean().mean():.1f}/5.0
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # 部門ごとのマネージャー表示
+        for _, manager in dept_df.iterrows():
         with st.container():
             st.markdown('<div class="manager-row">', unsafe_allow_html=True)
             cols = st.columns([2, 6, 1])
