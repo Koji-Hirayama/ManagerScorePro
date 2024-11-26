@@ -5,6 +5,13 @@ from typing import Dict, Optional, Tuple
 import json
 from datetime import datetime, timedelta
 import pandas as pd
+import logging
+
+# ロギング設定の初期化
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 class AIAdvisor:
     def __init__(self):
