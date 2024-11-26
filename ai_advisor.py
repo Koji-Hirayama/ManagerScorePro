@@ -40,7 +40,8 @@ class AIAdvisor:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_implemented BOOLEAN DEFAULT FALSE,
                     implementation_date TIMESTAMP,
-                    effectiveness_rating INTEGER CHECK (effectiveness_rating BETWEEN 1 AND 5)
+                    effectiveness_rating INTEGER CHECK (effectiveness_rating BETWEEN 1 AND 5),
+                    feedback_text TEXT
                 );
             '''))
             conn.commit()
@@ -119,7 +120,8 @@ class AIAdvisor:
                         THEN implementation_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo'
                         ELSE NULL 
                     END as implementation_date,
-                    effectiveness_rating
+                    effectiveness_rating,
+                    feedback_text
                 FROM ai_suggestion_history
                 WHERE manager_id = :manager_id
                 ORDER BY created_at DESC;
@@ -138,7 +140,8 @@ class AIAdvisor:
         self, 
         suggestion_id: int, 
         is_implemented: bool = None, 
-        effectiveness_rating: int = None
+        effectiveness_rating: int = None,
+        feedback_text: str = None
     ):
         """AI提案の実装状態と効果を更新"""
         try:
@@ -150,6 +153,8 @@ class AIAdvisor:
                         update_dict['implementation_date'] = datetime.now()
                 if effectiveness_rating is not None:
                     update_dict['effectiveness_rating'] = effectiveness_rating
+                if feedback_text is not None:
+                    update_dict['feedback_text'] = feedback_text
 
                 if update_dict:
                     query = """

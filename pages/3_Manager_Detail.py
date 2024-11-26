@@ -150,7 +150,12 @@ try:
                             f"提案 ({suggestion['created_at'].strftime('%Y年%m月%d日 %H:%M')})",
                             expanded=False
                         ):
+                            st.markdown("#### 提案内容")
                             st.write(suggestion['suggestion_text'])
+                            
+                            if suggestion['feedback_text']:
+                                st.markdown("#### フィードバック履歴")
+                                st.info(suggestion['feedback_text'])
                             
                             # 実装状態の更新
                             col1, col2 = st.columns(2)
@@ -163,17 +168,27 @@ try:
                             
                             with col2:
                                 effectiveness = st.select_slider(
-                                    "効果",
+                                    "効果評価",
                                     options=range(1, 6),
                                     value=suggestion['effectiveness_rating'] or 3,
+                                    format_func=lambda x: ["非常に低い", "低い", "普通", "高い", "非常に高い"][x-1],
                                     key=f"effect_{suggestion['id']}"
+                                )
+                                
+                                # 詳細なフィードバックの入力
+                                feedback_text = st.text_area(
+                                    "フィードバックコメント",
+                                    key=f"feedback_{suggestion['id']}",
+                                    help="提案の効果や改善点について具体的なフィードバックを入力してください",
+                                    max_chars=500
                                 )
                             
                             if st.button("状態を更新", key=f"update_{suggestion['id']}"):
                                 st.session_state.ai_advisor.update_suggestion_status(
                                     suggestion['id'],
                                     is_implemented=is_implemented,
-                                    effectiveness_rating=effectiveness
+                                    effectiveness_rating=effectiveness,
+                                    feedback_text=feedback_text
                                 )
                                 st.success("提案の状態を更新しました")
                 else:
