@@ -1,5 +1,6 @@
 import streamlit as st
 from database import DatabaseManager
+from datetime import datetime
 from ai_advisor import AIAdvisor
 from visualization import create_radar_chart, create_trend_chart, create_growth_chart
 from components import display_score_details
@@ -70,5 +71,35 @@ try:
         except Exception as e:
             st.warning("AI提案の生成中にエラーが発生しました")
             
+# レポート生成セクション
+    st.markdown("---")
+    st.subheader("評価レポート")
+    
+    if st.button("レポートを生成"):
+        with st.spinner("レポートを生成中..."):
+            from report_generator import generate_manager_report, export_report_to_markdown
+            
+            report_content = generate_manager_report(
+                manager_data,
+                growth_data,
+                st.session_state.get('ai_advisor')
+            )
+            
+            if report_content:
+                st.markdown(report_content)
+                
+                # レポートのダウンロード機能
+                filename = f"manager_report_{latest_scores['name']}_{datetime.now().strftime('%Y%m%d_%H%M')}.md"
+                if export_report_to_markdown(report_content, filename):
+                    with open(filename, 'r', encoding='utf-8') as f:
+                        st.download_button(
+                            label="レポートをダウンロード",
+                            data=f.read(),
+                            file_name=filename,
+                            mime="text/markdown"
+                        )
+            else:
+                st.error("レポートの生成中にエラーが発生しました")
+
 except Exception as e:
     st.error(f"マネージャー詳細の表示中にエラーが発生しました: {str(e)}")
