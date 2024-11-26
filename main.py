@@ -2,7 +2,10 @@ import components
 import streamlit as st
 from database import DatabaseManager
 from ai_advisor import AIAdvisor
-from visualization import create_radar_chart, create_trend_chart, create_growth_chart
+from visualization import (
+    create_radar_chart, create_trend_chart, create_growth_chart,
+    create_department_comparison_chart, create_department_metrics_chart
+)
 from components import display_manager_list, display_score_details
 from utils import calculate_company_average, format_scores_for_ai
 
@@ -251,12 +254,12 @@ elif page == "部門別分析":
         else:
             # 部門別比較レーダーチャート
             st.subheader("部門別スキルレーダーチャート")
-            radar_chart = visualization.create_department_comparison_chart(dept_df)
+            radar_chart = create_department_comparison_chart(dept_df)
             st.plotly_chart(radar_chart, use_container_width=True)
             
             # 部門別詳細比較
             st.subheader("部門別評価指標の詳細比較")
-            metrics_chart = visualization.create_department_metrics_chart(dept_df)
+            metrics_chart = create_department_metrics_chart(dept_df)
             st.plotly_chart(metrics_chart, use_container_width=True)
             
             # 部門別データテーブル

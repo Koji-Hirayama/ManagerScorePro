@@ -30,7 +30,9 @@ def display_manager_list(managers_df):
                     print(f"スコア計算エラー - マネージャー {manager['name']}: {str(e)}")
                     st.error("スコアの計算中にエラーが発生しました")
                 
-            if st.button(f"{manager['name']}の詳細を見る", key=f"btn_{manager['id']}"):
+            # UUIDを使用してユニークなキーを生成
+            unique_key = f"btn_manager_{manager['id']}_{manager['department']}"
+            if st.button(f"{manager['name']}の詳細を見る", key=unique_key):
                 st.session_state.selected_manager = manager['id']
                 st.session_state.page = 'detail'
     except Exception as e:

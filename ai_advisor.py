@@ -8,10 +8,22 @@ class AIAdvisor:
     def __init__(self):
         openai.api_key = os.getenv('OPENAI_API_KEY')
         self.debug_mode = os.getenv('DEBUG', '').lower() == 'true'
+        
+        # セッションステートの初期化
         if 'ai_cache' not in st.session_state:
             st.session_state.ai_cache = {}
         if 'api_calls_count' not in st.session_state:
             st.session_state.api_calls_count = 0
+        if 'ai_model' not in st.session_state:
+            st.session_state.ai_model = 'gpt-4'
+        
+        # サイドバーにモデル選択UIを追加
+        st.sidebar.subheader("AI設定")
+        st.session_state.ai_model = st.sidebar.selectbox(
+            "言語モデルの選択",
+            options=['gpt-4', 'gpt-3.5-turbo'],
+            help="より高度な提案にはGPT-4を、より速い応答にはGPT-3.5を選択してください。"
+        )
 
     def _get_cache_key(self, scores: Dict[str, float]) -> str:
         """スコアから一意のキャッシュキーを生成"""
@@ -67,7 +79,7 @@ class AIAdvisor:
         try:
             client = openai.OpenAI()
             response = client.chat.completions.create(
-                model="gpt-4",
+                model=st.session_state.ai_model,
                 messages=[
                     {"role": "system", "content": "You are an experienced management coach providing actionable advice."},
                     {"role": "user", "content": prompt}
