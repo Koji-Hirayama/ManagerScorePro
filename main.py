@@ -87,8 +87,15 @@ if page == "ダッシュボード":
 elif page == "マネージャー詳細":
     st.title("マネージャー詳細評価")
     
-    if st.session_state.selected_manager:
+    if not st.session_state.selected_manager:
+        st.info("ダッシュボードからマネージャーを選択してください")
+        st.stop()
+    
+    try:
         manager_data = db.get_manager_details(st.session_state.selected_manager)
+        if manager_data.empty:
+            st.warning("マネージャーデータが見つかりません")
+            st.stop()
         latest_scores = manager_data.iloc[0]
         
         col1, col2 = st.columns([2, 1])
@@ -140,9 +147,9 @@ elif page == "マネージャー詳細":
                 st.write(ai_suggestions)
             except Exception as e:
                 st.warning("AI提案の生成中にエラーが発生しました")
-        
-    else:
-        st.info("マネージャーを選択してください")
+                
+    except Exception as e:
+        st.error(f"マネージャー詳細の表示中にエラーが発生しました: {str(e)}")
 elif page == "評価指標設定":
     st.title("評価指標設定")
     
@@ -229,24 +236,6 @@ elif page == "評価指標設定":
         st.error(f"エラー詳細: {str(e)}")
 
 
-# サイドバーナビゲーション
-pages = {
-    "ホーム": "home",
-    "マネージャー一覧": "managers",
-    "部門別分析": "department",
-    "評価指標管理": "metrics"
-}
-page = st.sidebar.radio("ページ選択", list(pages.keys()))
-
-if page == "ホーム":
-    st.title("マネージャースキル分析ダッシュボード")
-    st.write("マネージャーのスキル評価・育成支援のための分析ツールです。")
-
-elif page == "マネージャー一覧":
-    st.title("マネージャー一覧")
-    managers_df = db.get_all_managers()
-    components.display_manager_list(managers_df)
-
 elif page == "部門別分析":
     st.title("部門別分析")
     
@@ -280,6 +269,17 @@ elif page == "部門別分析":
                 }),
                 use_container_width=True
             )
+            
+            # 部門間の比較分析
+            st.subheader("部門間の比較分析")
+            best_dept = formatted_df.iloc[formatted_df.iloc[:, 2:].mean(axis=1).idxmax()]
+            st.info(f"最も総合的なスコアが高い部門: {best_dept['部門']} (平均スコア: {formatted_df.iloc[:, 2:].mean(axis=1).max():.2f})")
+            
+            # 各指標のトップ部門を表示
+            st.markdown("### 各指標におけるトップ部門")
+            for col in formatted_df.columns[2:]:
+                top_dept = formatted_df.loc[formatted_df[col].idxmax()]
+                st.write(f"- {col}: {top_dept['部門']} ({top_dept[col]:.2f})")
             
     except Exception as e:
         st.error("部門別分析の表示中にエラーが発生しました")
