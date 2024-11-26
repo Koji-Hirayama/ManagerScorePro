@@ -1,12 +1,11 @@
-import components
+from datetime import datetime
 import streamlit as st
+import time
+import pandas as pd
 from database import DatabaseManager
+from visualization import create_radar_chart, create_trend_chart
+from components import display_manager_list
 from ai_advisor import AIAdvisor
-from visualization import (
-    create_radar_chart, create_trend_chart, create_growth_chart,
-    create_department_comparison_chart, create_department_metrics_chart
-)
-from components import display_manager_list, display_score_details
 from utils import calculate_company_average, format_scores_for_ai
 
 st.set_page_config(
@@ -19,8 +18,6 @@ with open('style.css') as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 # Initialize session state
-if 'page' not in st.session_state:
-    st.session_state.page = 'dashboard'
 if 'selected_manager' not in st.session_state:
     st.session_state.selected_manager = None
 
@@ -33,46 +30,76 @@ except Exception as e:
 
 # Initialize AI advisor
 try:
-    ai_advisor = AIAdvisor()
+    st.session_state.ai_advisor = AIAdvisor()
 except Exception as e:
     st.warning("AI機能は現在利用できません。基本機能のみ使用可能です。")
-    ai_advisor = None
+    st.session_state.ai_advisor = None
 
-# Main navigation
-st.sidebar.title("マネージャー評価・育成支援システム")
+# Main content
+st.title("企業全体のマネージャー評価ダッシュボード")
 
-# ナビゲーションセクション
+# Get all managers data
+managers_df = db.get_all_managers()
+
+# Calculate and display company average
+company_avg = calculate_company_average(managers_df)
+
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    # Display radar chart
+    radar_fig = create_radar_chart(
+        list(company_avg.values()),
+        "企業全体の平均スコア"
+    )
+    st.plotly_chart(radar_fig, use_container_width=True)
+    
+with col2:
+    st.subheader("企業全体の評価サマリー")
+    for metric, score in company_avg.items():
+        st.metric(label=metric.title(), value=f"{score:.1f}/5.0")
+
+# AI Suggestions
+if st.session_state.ai_advisor:
+    st.subheader("AI改善提案")
+    try:
+        ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(company_avg)
+        st.write(ai_suggestions)
+    except Exception as e:
+        st.warning("AI提案の生成中にエラーが発生しました")
+
+# Manager List
+st.markdown("---")
+display_manager_list(managers_df)
+
+# System information
+st.sidebar.markdown("### システム情報")
+st.sidebar.info(f"最終更新: {datetime.now().strftime('%Y年%m月%d日 %H:%M')}")
+
+# Navigation section
 st.sidebar.markdown("### メインメニュー")
 page = st.sidebar.radio(
     "",
     options=[
         "📊 ダッシュボード",
         "👥 マネージャー詳細",
-        "🏢 部門別分析",
         "⚙️ 評価指標設定"
     ],
     key="navigation",
     help="各ページの機能:\n"
          "- ダッシュボード: 全体の評価状況を把握\n"
          "- マネージャー詳細: 個別の詳細評価と成長分析\n"
-         "- 部門別分析: 部門ごとの比較と分析\n"
          "- 評価指標設定: 評価基準のカスタマイズ"
 )
 
-# ページ名を標準化
-page_name = page.split(" ")[1]
-
-# ページ状態の更新を確実に行う
-if page_name != st.session_state.page:
-    st.session_state.page = page_name
+# Update session state
+if page != st.session_state.page:
+    st.session_state.page = page
     st.rerun()
 
-# システム情報
-st.sidebar.markdown("---")
-st.sidebar.markdown("### システム情報")
-st.sidebar.info(f"最終更新: {datetime.now().strftime('%Y年%m月%d日 %H:%M')}")
-
+# Page content
 if page == "ダッシュボード":
+    # Code for the dashboard page
     st.title("企業全体のマネージャー評価ダッシュボード")
 
     # Get all managers data
@@ -97,10 +124,10 @@ if page == "ダッシュボード":
             st.metric(label=metric.title(), value=f"{score:.1f}/5.0")
     
     # AI Suggestions
-    if ai_advisor:
+    if st.session_state.ai_advisor:
         st.subheader("AI改善提案")
         try:
-            ai_suggestions = ai_advisor.generate_improvement_suggestions(company_avg)
+            ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(company_avg)
             st.write(ai_suggestions)
         except Exception as e:
             st.warning("AI提案の生成中にエラーが発生しました")
@@ -164,11 +191,11 @@ elif page == "マネージャー詳細":
             )
         
         # AI Suggestions
-        if ai_advisor:
+        if st.session_state.ai_advisor:
             st.subheader("個別AI改善提案")
             try:
                 individual_scores = format_scores_for_ai(latest_scores)
-                ai_suggestions = ai_advisor.generate_improvement_suggestions(individual_scores)
+                ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(individual_scores)
                 st.write(ai_suggestions)
             except Exception as e:
                 st.warning("AI提案の生成中にエラーが発生しました")
@@ -258,54 +285,4 @@ elif page == "評価指標設定":
                         
     except Exception as e:
         st.error("評価指標の表示中にエラーが発生しました")
-        st.error(f"エラー詳細: {str(e)}")
-
-
-elif page == "部門別分析":
-    st.title("部門別分析")
-    
-    try:
-        # 部門別データの取得
-        dept_df = db.get_department_analysis()
-        
-        if dept_df.empty:
-            st.warning("分析可能なデータがありません")
-        else:
-            # 部門別比較レーダーチャート
-            st.subheader("部門別スキルレーダーチャート")
-            radar_chart = create_department_comparison_chart(dept_df)
-            st.plotly_chart(radar_chart, use_container_width=True)
-            
-            # 部門別詳細比較
-            st.subheader("部門別評価指標の詳細比較")
-            metrics_chart = create_department_metrics_chart(dept_df)
-            st.plotly_chart(metrics_chart, use_container_width=True)
-            
-            # 部門別データテーブル
-            st.subheader("部門別データ一覧")
-            formatted_df = dept_df.copy()
-            formatted_df.columns = [
-                '部門', 'マネージャー数', 'コミュニケーション', 'サポート',
-                '目標管理', 'リーダーシップ', '問題解決力', '戦略'
-            ]
-            st.dataframe(
-                formatted_df.style.format({
-                    col: '{:.2f}' for col in formatted_df.columns[2:]
-                }),
-                use_container_width=True
-            )
-            
-            # 部門間の比較分析
-            st.subheader("部門間の比較分析")
-            best_dept = formatted_df.iloc[formatted_df.iloc[:, 2:].mean(axis=1).idxmax()]
-            st.info(f"最も総合的なスコアが高い部門: {best_dept['部門']} (平均スコア: {formatted_df.iloc[:, 2:].mean(axis=1).max():.2f})")
-            
-            # 各指標のトップ部門を表示
-            st.markdown("### 各指標におけるトップ部門")
-            for col in formatted_df.columns[2:]:
-                top_dept = formatted_df.loc[formatted_df[col].idxmax()]
-                st.write(f"- {col}: {top_dept['部門']} ({top_dept[col]:.2f})")
-            
-    except Exception as e:
-        st.error("部門別分析の表示中にエラーが発生しました")
         st.error(f"エラー詳細: {str(e)}")
