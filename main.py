@@ -219,3 +219,59 @@ elif page == "評価指標設定":
         st.error("評価指標の表示中にエラーが発生しました")
         st.error(f"エラー詳細: {str(e)}")
 
+
+# サイドバーナビゲーション
+pages = {
+    "ホーム": "home",
+    "マネージャー一覧": "managers",
+    "部門別分析": "department",
+    "評価指標管理": "metrics"
+}
+page = st.sidebar.radio("ページ選択", list(pages.keys()))
+
+if page == "ホーム":
+    st.title("マネージャースキル分析ダッシュボード")
+    st.write("マネージャーのスキル評価・育成支援のための分析ツールです。")
+
+elif page == "マネージャー一覧":
+    st.title("マネージャー一覧")
+    managers_df = db.get_all_managers()
+    components.display_manager_list(managers_df)
+
+elif page == "部門別分析":
+    st.title("部門別分析")
+    
+    try:
+        # 部門別データの取得
+        dept_df = db.get_department_analysis()
+        
+        if dept_df.empty:
+            st.warning("分析可能なデータがありません")
+        else:
+            # 部門別比較レーダーチャート
+            st.subheader("部門別スキルレーダーチャート")
+            radar_chart = visualization.create_department_comparison_chart(dept_df)
+            st.plotly_chart(radar_chart, use_container_width=True)
+            
+            # 部門別詳細比較
+            st.subheader("部門別評価指標の詳細比較")
+            metrics_chart = visualization.create_department_metrics_chart(dept_df)
+            st.plotly_chart(metrics_chart, use_container_width=True)
+            
+            # 部門別データテーブル
+            st.subheader("部門別データ一覧")
+            formatted_df = dept_df.copy()
+            formatted_df.columns = [
+                '部門', 'マネージャー数', 'コミュニケーション', 'サポート',
+                '目標管理', 'リーダーシップ', '問題解決力', '戦略'
+            ]
+            st.dataframe(
+                formatted_df.style.format({
+                    col: '{:.2f}' for col in formatted_df.columns[2:]
+                }),
+                use_container_width=True
+            )
+            
+    except Exception as e:
+        st.error("部門別分析の表示中にエラーが発生しました")
+        st.error(f"エラー詳細: {str(e)}")

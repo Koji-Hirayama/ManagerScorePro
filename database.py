@@ -164,6 +164,28 @@ class DatabaseManager:
             logging.error(f"マネージャー一覧取得エラー: {str(e)}")
             raise RuntimeError("マネージャー一覧の取得中にエラーが発生しました")
 
+    def get_department_analysis(self):
+        """部門別の評価スコアを取得"""
+        try:
+            query = '''
+                SELECT 
+                    m.department,
+                    COUNT(DISTINCT m.id) as manager_count,
+                    AVG(e.communication_score) as avg_communication,
+                    AVG(e.support_score) as avg_support,
+                    AVG(e.goal_management_score) as avg_goal,
+                    AVG(e.leadership_score) as avg_leadership,
+                    AVG(e.problem_solving_score) as avg_problem,
+                    AVG(e.strategy_score) as avg_strategy
+                FROM managers m
+                LEFT JOIN evaluations e ON m.id = e.manager_id
+                GROUP BY m.department
+                ORDER BY m.department;
+            '''
+            return pd.read_sql(query, self.engine)
+        except Exception as e:
+            logging.error(f"部門別分析データ取得エラー: {str(e)}")
+            raise RuntimeError("部門別分析データの取得中にエラーが発生しました")
     def __del__(self):
         """デストラクタ：エンジンの破棄"""
         if hasattr(self, 'engine'):
