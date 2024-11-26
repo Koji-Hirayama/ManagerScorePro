@@ -1,7 +1,7 @@
 import streamlit as st
 from database import Database
 from ai_advisor import AIAdvisor
-from visualization import create_radar_chart, create_trend_chart
+from visualization import create_radar_chart, create_trend_chart, create_growth_chart
 from components import display_manager_list, display_score_details
 from utils import calculate_company_average, format_scores_for_ai
 
