@@ -1,112 +1,41 @@
-import os
-import psycopg2
+from sqlalchemy import create_engine, exc
+from sqlalchemy.pool import QueuePool
+from sqlalchemy.orm import sessionmaker
 import pandas as pd
+import os
 from datetime import datetime, timedelta
-from datetime import datetime, timedelta
+import logging
 
-class Database:
+class DatabaseManager:
     def __init__(self):
-        """データベース接続の初期化"""
+        self.db_url = os.environ['DATABASE_URL']
+        self._setup_engine()
+        self._setup_logging()
+
+    def _setup_engine(self):
+        """SQLAlchemy engineのセットアップ"""
         try:
-            self.conn = psycopg2.connect(
-                os.environ['DATABASE_URL']
+            self.engine = create_engine(
+                self.db_url,
+                poolclass=QueuePool,
+                pool_size=5,
+                max_overflow=10,
+                pool_timeout=30,
+                pool_recycle=1800
             )
-            print("データベース接続成功")
-            self.create_tables()
-            
-            # データベースが空かチェックしてサンプルデータを投入
-            if self.is_database_empty():
-                print("データベースが空のため、サンプルデータを投入します")
-                if self.insert_sample_data():
-                    print("サンプルデータの投入が完了しました")
-                else:
-                    print("サンプルデータの投入に失敗しました")
+            self.Session = sessionmaker(bind=self.engine)
+            logging.info("データベース接続プールを初期化しました")
         except Exception as e:
-            print(f"データベース接続エラー: {str(e)}")
+            logging.error(f"データベース接続エラー: {str(e)}")
             raise
 
-    def create_tables(self):
-        """テーブルの作成"""
-        with self.conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS managers (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    department VARCHAR(100)
-                );
+    def _setup_logging(self):
+        """ロギングの設定"""
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
 
-                CREATE TABLE IF NOT EXISTS evaluations (
-                    id SERIAL PRIMARY KEY,
-                    manager_id INTEGER REFERENCES managers(id),
-                    evaluation_date DATE DEFAULT CURRENT_DATE,
-                    communication_score FLOAT,
-                    support_score FLOAT,
-                    goal_management_score FLOAT,
-                    leadership_score FLOAT,
-                    problem_solving_score FLOAT,
-                    strategy_score FLOAT
-                );
-            """)
-            self.conn.commit()
-
-    def get_all_managers(self):
-        """全マネージャーの最新の評価データを取得"""
-        try:
-            query = """
-            SELECT 
-                m.id,
-                m.name,
-                m.department,
-                COALESCE(AVG(e.communication_score), 0) as avg_communication,
-                COALESCE(AVG(e.support_score), 0) as avg_support,
-                COALESCE(AVG(e.goal_management_score), 0) as avg_goal,
-                COALESCE(AVG(e.leadership_score), 0) as avg_leadership,
-                COALESCE(AVG(e.problem_solving_score), 0) as avg_problem,
-                COALESCE(AVG(e.strategy_score), 0) as avg_strategy
-            FROM managers m
-            LEFT JOIN evaluations e ON m.id = e.manager_id
-            GROUP BY m.id, m.name, m.department
-            ORDER BY m.name
-            """
-            print("マネージャーデータを取得中...")
-            df = pd.read_sql(query, self.conn)
-            print(f"取得完了: {len(df)}件のマネージャーデータを取得")
-            return df
-        except Exception as e:
-            print(f"マネージャーデータ取得エラー: {str(e)}")
-            raise
-
-    def is_database_empty(self):
-        """データベースが空かどうかをチェック"""
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM managers")
-                manager_count = cur.fetchone()[0]
-                return manager_count == 0
-        except Exception as e:
-            print(f"データベース確認エラー: {str(e)}")
-            return True
-
-    def get_manager_details(self, manager_id):
-        """特定のマネージャーの評価履歴を取得"""
-        try:
-            query = """
-            SELECT 
-                e.*,
-                m.name,
-                m.department
-            FROM evaluations e
-            JOIN managers m ON e.manager_id = m.id
-            WHERE m.id = %s
-            ORDER BY evaluation_date DESC
-            """
-            print(f"マネージャーID {manager_id} の詳細データを取得中...")
-            df = pd.read_sql(query, self.conn, params=(manager_id,))
-            print(f"取得完了: {len(df)}件の評価データを取得")
-            return df
-        except Exception as e:
-            print(f"マネージャー詳細データ取得エラー: {str(e)}")
-            raise
     def get_evaluation_metrics(self):
         """有効な評価指標を取得"""
         try:
@@ -116,145 +45,69 @@ class Database:
             WHERE is_active = true
             ORDER BY category, id;
             """
-            return pd.read_sql(query, self.conn)
+            return pd.read_sql(query, self.engine)
+        except exc.SQLAlchemyError as e:
+            logging.error(f"評価指標取得エラー: {str(e)}")
+            raise RuntimeError("評価指標の取得中にデータベースエラーが発生しました")
         except Exception as e:
-            print(f"評価指標取得エラー: {str(e)}")
+            logging.error(f"予期せぬエラー: {str(e)}")
             raise
 
     def add_evaluation_metric(self, name, description, category='custom', weight=1.0):
         """新しい評価指標を追加"""
+        session = self.Session()
         try:
-            with self.conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO evaluation_metrics (name, description, category, weight)
-                    VALUES (%s, %s, %s, %s)
-                    RETURNING id;
-                """, (name, description, category, weight))
-                self.conn.commit()
-                return cur.fetchone()[0]
-        except Exception as e:
-            print(f"評価指標追加エラー: {str(e)}")
-            self.conn.rollback()
-            raise
+            # 入力値の検証
+            if not name or len(name) > 100:
+                raise ValueError("指標名は1-100文字で入力してください")
+            if not description:
+                raise ValueError("説明を入力してください")
+            if weight < 0.1 or weight > 2.0:
+                raise ValueError("重み付けは0.1から2.0の間で設定してください")
+            if category not in ['core', 'custom']:
+                raise ValueError("無効なカテゴリーです")
 
-    def update_metric_status(self, metric_id, is_active):
-        """評価指標の有効/無効を切り替え"""
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("""
-                    UPDATE evaluation_metrics
-                    SET is_active = %s
-                    WHERE id = %s;
-                """, (is_active, metric_id))
-                self.conn.commit()
-                return True
-        except Exception as e:
-            print(f"評価指標ステータス更新エラー: {str(e)}")
-            self.conn.rollback()
-            raise
+            # 重複チェック
+            result = session.execute(
+                "SELECT COUNT(*) FROM evaluation_metrics WHERE name = :name",
+                {"name": name}
+            ).scalar()
+            if result > 0:
+                raise ValueError(f"指標名「{name}」は既に存在します")
 
+            # 新規指標の追加
+            result = session.execute("""
+                INSERT INTO evaluation_metrics (name, description, category, weight)
+                VALUES (:name, :description, :category, :weight)
+                RETURNING id;
+            """, {
+                "name": name,
+                "description": description,
+                "category": category,
+                "weight": weight
+            })
+            
+            new_id = result.scalar()
+            session.commit()
+            logging.info(f"新しい評価指標を追加しました: {name}")
+            return new_id
 
-    def analyze_growth(self, manager_id):
-        """マネージャーの成長分析を行う"""
-        try:
-            query = """
-            WITH growth_calc AS (
-                SELECT 
-                    e1.*,
-                    LAG(e1.evaluation_date) OVER (ORDER BY e1.evaluation_date) as prev_date,
-                    (e1.communication_score + e1.support_score + 
-                     e1.goal_management_score + e1.leadership_score + 
-                     e1.problem_solving_score + e1.strategy_score) / 6.0 as avg_score,
-                    LAG((e1.communication_score + e1.support_score + 
-                         e1.goal_management_score + e1.leadership_score + 
-                         e1.problem_solving_score + e1.strategy_score) / 6.0) 
-                    OVER (ORDER BY e1.evaluation_date) as prev_avg_score
-                FROM evaluations e1
-                WHERE e1.manager_id = %s
-                ORDER BY e1.evaluation_date DESC
-            )
-            SELECT 
-                *,
-                CASE 
-                    WHEN prev_avg_score IS NOT NULL 
-                    THEN (avg_score - prev_avg_score) / prev_avg_score * 100 
-                    ELSE 0 
-                END as growth_rate
-            FROM growth_calc;
-            """
-            print(f"マネージャーID {manager_id} の成長分析を実行中...")
-            df = pd.read_sql(query, self.conn, params=(manager_id,))
-            print(f"分析完了: {len(df)}件の評価データを分析")
-            return df
-        except Exception as e:
-            print(f"成長分析エラー: {str(e)}")
+        except exc.SQLAlchemyError as e:
+            session.rollback()
+            logging.error(f"データベースエラー: {str(e)}")
+            raise RuntimeError("評価指標の追加中にデータベースエラーが発生しました")
+        except ValueError as e:
+            session.rollback()
+            logging.warning(f"入力値エラー: {str(e)}")
             raise
-    def insert_sample_data(self):
-        """サンプルデータを投入する関数"""
-        try:
-            with self.conn.cursor() as cur:
-                # トランザクション開始
-                cur.execute("BEGIN;")
-                
-                # マネージャーデータの投入
-                managers = [
-                    ('山田太郎', '営業部'),
-                    ('鈴木花子', '開発部'),
-                    ('佐藤健一', 'カスタマーサポート部'),
-                    ('田中美咲', '人事部')
-                ]
-                
-                manager_ids = []
-                for name, dept in managers:
-                    cur.execute(
-                        "INSERT INTO managers (name, department) VALUES (%s, %s) RETURNING id;",
-                        (name, dept)
-                    )
-                    manager_ids.append(cur.fetchone()[0])
-                
-                # 評価データの投入（過去3ヶ月分）
-                for manager_id in manager_ids:
-                    base_scores = {
-                        'communication': round(3.0 + (manager_id % 2) * 0.5, 1),
-                        'support': round(3.2 + (manager_id % 3) * 0.3, 1),
-                        'goal_management': round(3.5 + (manager_id % 2) * 0.4, 1),
-                        'leadership': round(3.3 + (manager_id % 3) * 0.2, 1),
-                        'problem_solving': round(3.4 + (manager_id % 2) * 0.3, 1),
-                        'strategy': round(3.1 + (manager_id % 3) * 0.4, 1)
-                    }
-                    
-                    for month in range(3):
-                        eval_date = datetime.now() - timedelta(days=30 * month)
-                        growth_factor = month * 0.1  # 時間とともに少しずつ向上
-                        
-                        cur.execute("""
-                            INSERT INTO evaluations 
-                            (manager_id, evaluation_date, communication_score, support_score,
-                             goal_management_score, leadership_score, problem_solving_score,
-                             strategy_score)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-                        """, (
-                            manager_id,
-                            eval_date.date(),
-                            min(5.0, base_scores['communication'] + growth_factor),
-                            min(5.0, base_scores['support'] + growth_factor),
-                            min(5.0, base_scores['goal_management'] + growth_factor),
-                            min(5.0, base_scores['leadership'] + growth_factor),
-                            min(5.0, base_scores['problem_solving'] + growth_factor),
-                            min(5.0, base_scores['strategy'] + growth_factor)
-                        ))
-                
-                # トランザクションのコミット
-                self.conn.commit()
-                return True
-                
         except Exception as e:
-            # エラー発生時はロールバック
-            self.conn.rollback()
-            print(f"Error inserting sample data: {str(e)}")
-            return False
+            session.rollback()
+            logging.error(f"予期せぬエラー: {str(e)}")
+            raise
+        finally:
+            session.close()
 
     def __del__(self):
-        """デストラクタ：接続のクローズ"""
-        if hasattr(self, 'conn'):
-            self.conn.close()
+        """デストラクタ：エンジンの破棄"""
+        if hasattr(self, 'engine'):
+            self.engine.dispose()

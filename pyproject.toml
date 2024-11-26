@@ -4,9 +4,12 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "flask>=3.1.0",
+    "flask-migrate>=4.0.7",
     "openai>=1.55.1",
     "pandas",
     "plotly>=2.2.3",
     "psycopg2-binary>=2.9.10",
+    "sqlalchemy>=2.0.36",
     "streamlit>=1.40.2",
 ]
