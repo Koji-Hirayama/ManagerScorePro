@@ -224,6 +224,13 @@ class DatabaseManager:
         """部門別の評価スコアを取得"""
         try:
             query = '''
+                WITH latest_evaluations AS (
+                    SELECT 
+                        manager_id,
+                        MAX(evaluation_date) as latest_date
+                    FROM evaluations
+                    GROUP BY manager_id
+                )
                 SELECT 
                     m.department,
                     COUNT(DISTINCT m.id) as manager_count,
@@ -234,14 +241,16 @@ class DatabaseManager:
                     AVG(e.problem_solving_score) as avg_problem,
                     AVG(e.strategy_score) as avg_strategy
                 FROM managers m
-                LEFT JOIN evaluations e ON m.id = e.manager_id
+                JOIN latest_evaluations le ON m.id = le.manager_id
+                JOIN evaluations e ON m.id = e.manager_id 
+                    AND e.evaluation_date = le.latest_date
                 GROUP BY m.department
                 ORDER BY m.department;
             '''
             return pd.read_sql(query, self.engine)
         except Exception as e:
             logging.error(f"部門別分析データ取得エラー: {str(e)}")
-            raise RuntimeError("部門別分析データの取得中にエラーが発生しました")
+            return pd.DataFrame()  # エラー時は空のDataFrameを返す
     def __del__(self):
         """デストラクタ：エンジンの破棄"""
         if hasattr(self, 'engine'):
