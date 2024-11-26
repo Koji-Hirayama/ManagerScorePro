@@ -15,13 +15,13 @@ class AIAdvisor:
         if 'api_calls_count' not in st.session_state:
             st.session_state.api_calls_count = 0
         if 'ai_model' not in st.session_state:
-            st.session_state.ai_model = 'gpt-4'
+            st.session_state.ai_model = 'gpt-3.5-turbo'
         
         # サイドバーにモデル選択UIを追加（デフォルト値を変更）
         st.sidebar.subheader("AI設定")
         st.session_state.ai_model = st.sidebar.selectbox(
             "言語モデルの選択",
-            options=['gpt-4', 'gpt-3.5-turbo'],  # デフォルト値を最初に配置
+            options=['gpt-3.5-turbo', 'gpt-4'],  # デフォルト値を最初に配置
             help="より高度な提案にはGPT-4を、より速い応答にはGPT-3.5を選択してください。"
         )
 
