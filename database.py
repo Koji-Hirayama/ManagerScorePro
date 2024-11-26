@@ -256,6 +256,27 @@ class DatabaseManager:
         if hasattr(self, 'engine'):
             self.engine.dispose()
 
+    def get_all_managers(self):
+        try:
+            query = '''
+                SELECT 
+                    m.*,
+                    AVG(e.communication_score) as avg_communication,
+                    AVG(e.support_score) as avg_support,
+                    AVG(e.goal_management_score) as avg_goal,
+                    AVG(e.leadership_score) as avg_leadership,
+                    AVG(e.problem_solving_score) as avg_problem,
+                    AVG(e.strategy_score) as avg_strategy
+                FROM managers m
+                LEFT JOIN evaluations e ON m.id = e.manager_id
+                GROUP BY m.id, m.name, m.department
+                ORDER BY m.name
+            '''
+            return pd.read_sql(query, self.engine)
+        except Exception as e:
+            logging.error(f"マネージャー一覧取得エラー: {str(e)}")
+            return pd.DataFrame()
+
     def get_department_statistics(self):
         """部門別の評価統計を取得"""
         try:

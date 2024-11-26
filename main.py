@@ -39,16 +39,9 @@ except Exception as e:
 # Main content
 st.title("企業全体のマネージャー評価ダッシュボード")
 
-# 日付フィルター
-col1, col2 = st.columns(2)
-with col1:
-    start_date = st.date_input("開始日", value=datetime.now() - timedelta(days=180))
-with col2:
-    end_date = st.date_input("終了日", value=datetime.now())
-
 try:
     # データの取得
-    managers_df = db.get_all_managers(start_date=start_date, end_date=end_date)
+    managers_df = db.get_all_managers()
     
     if managers_df.empty:
         st.warning("選択された期間のデータが見つかりません")
@@ -94,15 +87,3 @@ try:
 except Exception as e:
     st.error(f"データの表示中にエラーが発生しました: {str(e)}")
 
-# ナビゲーション情報
-st.sidebar.markdown("### ナビゲーション")
-st.sidebar.info("""
-- 📊 ダッシュボード
-- 📋 評価指標設定
-- 👥 マネージャー一覧
-- 📈 マネージャー詳細
-""")
-
-# System information
-st.sidebar.markdown("### システム情報")
-st.sidebar.info(f"最終更新: {datetime.now().strftime('%Y年%m月%d日 %H:%M')}")
