@@ -11,34 +11,39 @@ def display_manager_list(managers_df):
     <style>
     .manager-header {
         background-color: #f0f2f6;
-        padding: 0.75rem;
+        padding: 0.5rem;
         border-radius: 0.5rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
         display: flex;
         align-items: center;
     }
     .manager-row {
-        padding: 0.75rem 0;
+        padding: 0.5rem 0;
         border-bottom: 1px solid #e6e6e6;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
     }
     .metric-container {
         background-color: white;
-        padding: 0.5rem;
+        padding: 0.3rem;
         border-radius: 0.3rem;
         border: 1px solid #e6e6e6;
         margin: 0;
     }
     .metric-value {
-        font-size: 1.1rem;
+        font-size: 0.9rem;
         font-weight: bold;
         margin: 0;
         padding: 0;
     }
     .metric-label {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         margin: 0;
         padding: 0;
+    }
+    .manager-name {
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin: 0 0 0.2rem 0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -61,7 +66,7 @@ def display_manager_list(managers_df):
             
             # 基本情報
             with cols[0]:
-                st.markdown(f"### {manager['name']}")
+                st.markdown(f'<div class="manager-name">{manager["name"]}</div>', unsafe_allow_html=True)
                 st.markdown(f"**部門**: {manager['department']}")
             
             # スコア情報

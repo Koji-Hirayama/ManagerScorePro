@@ -59,6 +59,15 @@ try:
         with col2:
             for metric, score in company_avg.items():
                 st.metric(label=metric.title(), value=f"{score:.1f}/5.0")
+        
+        # AI提案
+        if st.session_state.ai_advisor:
+            st.subheader("🤖 AI改善提案")
+            try:
+                ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(company_avg)
+                st.write(ai_suggestions)
+            except Exception as e:
+                st.warning("AI提案の生成中にエラーが発生しました")
 
         st.markdown("---")
         
@@ -74,15 +83,6 @@ try:
         # マネージャー一覧の表示
         st.subheader("👥 マネージャー一覧")
         display_manager_list(managers_df)
-        
-        # AI提案
-        if st.session_state.ai_advisor:
-            st.subheader("🤖 AI改善提案")
-            try:
-                ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(company_avg)
-                st.write(ai_suggestions)
-            except Exception as e:
-                st.warning("AI提案の生成中にエラーが発生しました")
 
 except Exception as e:
     st.error(f"データの表示中にエラーが発生しました: {str(e)}")
