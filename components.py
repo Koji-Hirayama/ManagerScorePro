@@ -7,35 +7,43 @@ def display_manager_list(managers_df):
         if managers_df.empty:
             st.warning("マネージャーデータが見つかりません")
             return
-            
+        
+        # データテーブルとして表示
+        display_df = managers_df[[
+            'name', 'department',
+            'avg_communication', 'avg_support', 'avg_goal',
+            'avg_leadership', 'avg_problem', 'avg_strategy'
+        ]].copy()
+        
+        # カラム名を日本語に変更
+        display_df.columns = [
+            '名前', '部門',
+            'コミュニケーション', 'サポート', '目標管理',
+            'リーダーシップ', '問題解決力', '戦略'
+        ]
+        
+        # インタラクティブなデータテーブルを表示
+        st.dataframe(
+            display_df,
+            column_config={
+                '名前': st.column_config.Column(width=150),
+                '部門': st.column_config.Column(width=100),
+                'コミュニケーション': st.column_config.NumberColumn(format="%.1f", width=120),
+                'サポート': st.column_config.NumberColumn(format="%.1f", width=120),
+                '目標管理': st.column_config.NumberColumn(format="%.1f", width=120),
+                'リーダーシップ': st.column_config.NumberColumn(format="%.1f", width=120),
+                '問題解決力': st.column_config.NumberColumn(format="%.1f", width=120),
+                '戦略': st.column_config.NumberColumn(format="%.1f", width=120)
+            },
+            hide_index=True
+        )
+        
+        # 詳細ボタンを各行に追加
         for _, manager in managers_df.iterrows():
-            col1, col2 = st.columns([1, 4])
-            
-            with col1:
-                st.write(f"{manager['name']} ({manager['department']})")
-            
-            with col2:
-                try:
-                    avg_score = (
-                        float(manager['avg_communication']) +
-                        float(manager['avg_support']) +
-                        float(manager['avg_goal']) +
-                        float(manager['avg_leadership']) +
-                        float(manager['avg_problem']) +
-                        float(manager['avg_strategy'])
-                    ) / 6
-                    
-                    st.progress(min(avg_score / 5, 1.0))
-                except (ValueError, TypeError) as e:
-                    print(f"スコア計算エラー - マネージャー {manager['name']}: {str(e)}")
-                    st.error("スコアの計算中にエラーが発生しました")
-                
-            unique_key = f"btn_manager_{manager['id']}_{manager['department']}"
-            if st.button(f"{manager['name']}の詳細を見る", key=unique_key):
+            if st.button(f"{manager['name']}の詳細を見る", key=f"btn_manager_{manager['id']}"):
                 st.session_state.selected_manager = manager['id']
-                st.session_state.page = "マネージャー詳細"
-                # 直接ページ遷移を実行
                 st.switch_page("pages/manager_detail.py")
+                
     except Exception as e:
         print(f"マネージャー一覧表示エラー: {str(e)}")
         st.error("マネージャー一覧の表示中にエラーが発生しました")

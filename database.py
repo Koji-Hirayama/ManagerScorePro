@@ -255,3 +255,73 @@ class DatabaseManager:
         """デストラクタ：エンジンの破棄"""
         if hasattr(self, 'engine'):
             self.engine.dispose()
+
+    def get_department_statistics(self):
+        """部門別の評価統計を取得"""
+        try:
+            query = """
+            SELECT 
+                department,
+                COUNT(DISTINCT m.id) as manager_count,
+                AVG(communication_score) as avg_communication,
+                AVG(support_score) as avg_support,
+                AVG(goal_management_score) as avg_goal,
+                AVG(leadership_score) as avg_leadership,
+                AVG(problem_solving_score) as avg_problem,
+                AVG(strategy_score) as avg_strategy
+            FROM managers m
+            JOIN evaluations e ON m.id = e.manager_id
+            GROUP BY department
+            """
+            return pd.read_sql(query, self.engine)
+        except Exception as e:
+            print(f"部門別統計取得エラー: {str(e)}")
+            return pd.DataFrame()
+
+            self.engine.dispose()
+def generate_sample_data(self):
+    import random
+    from datetime import datetime, timedelta
+    
+    try:
+        # 会社規模の設定（100-500人）
+        company_size = random.randint(100, 500)
+        manager_count = int(company_size * random.uniform(0.1, 0.2))  # 10-20%をマネージャーに
+        
+        # 部門の設定
+        departments = ['営業', '開発', '人事', '経営企画', 'カスタマーサクセス', 'マーケティング']
+        
+        # マネージャーデータの生成
+        for i in range(manager_count):
+            # マネージャー基本情報
+            manager_name = f"サンプルマネージャー{i+1}"
+            department = random.choice(departments)
+            
+            # マネージャーの追加
+            manager_id = self.add_manager(manager_name, department)
+            
+            # 過去6ヶ月分の評価データを生成
+            for months_ago in range(6):
+                eval_date = datetime.now() - timedelta(days=30*months_ago)
+                
+                # 基本スコアを設定（3.0-4.5の範囲）
+                base_score = random.uniform(3.0, 4.5)
+                
+                # 各項目のスコアを生成（基本スコアの±0.5の範囲）
+                self.add_evaluation(
+                    manager_id=manager_id,
+                    evaluation_date=eval_date,
+                    scores={
+                        'communication': max(1, min(5, base_score + random.uniform(-0.5, 0.5))),
+                        'support': max(1, min(5, base_score + random.uniform(-0.5, 0.5))),
+                        'goal_management': max(1, min(5, base_score + random.uniform(-0.5, 0.5))),
+                        'leadership': max(1, min(5, base_score + random.uniform(-0.5, 0.5))),
+                        'problem_solving': max(1, min(5, base_score + random.uniform(-0.5, 0.5))),
+                        'strategy': max(1, min(5, base_score + random.uniform(-0.5, 0.5)))
+                    }
+                )
+        
+        return True
+    except Exception as e:
+        logging.error(f"サンプルデータ生成エラー: {str(e)}")
+        return False
