@@ -11,10 +11,10 @@ def calculate_company_average(managers_df):
 
 def format_scores_for_ai(scores):
     return {
-        'communication': scores['avg_communication'],
-        'support': scores['avg_support'],
-        'goal_management': scores['avg_goal'],
-        'leadership': scores['avg_leadership'],
-        'problem_solving': scores['avg_problem'],
-        'strategy': scores['avg_strategy']
+        'communication': scores['communication_score'],
+        'support': scores['support_score'],
+        'goal_management': scores['goal_management_score'],
+        'leadership': scores['leadership_score'],
+        'problem_solving': scores['problem_solving_score'],
+        'strategy': scores['strategy_score']
     }
