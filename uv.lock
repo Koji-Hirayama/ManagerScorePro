@@ -913,6 +913,7 @@ name = "repl-nix-managerscorepro"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "alembic" },
     { name = "flask" },
     { name = "flask-migrate" },
     { name = "openai" },
@@ -925,6 +926,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alembic" },
     { name = "flask", specifier = ">=3.1.0" },
     { name = "flask-migrate", specifier = ">=4.0.7" },
     { name = "openai", specifier = ">=1.55.1" },

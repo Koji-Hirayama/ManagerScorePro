@@ -1,6 +1,17 @@
 import streamlit as st
 from sqlalchemy import text
 
+def get_score_color(score):
+    """スコアに応じたカラーコードを返す"""
+    if score >= 4.0:
+        return "#28a745"  # 緑（優秀）
+    elif score >= 3.0:
+        return "#17a2b8"  # 青（良好）
+    elif score >= 2.0:
+        return "#ffc107"  # 黄（要改善）
+    else:
+        return "#dc3545"  # 赤（要注意）
+
 def display_manager_list(managers_df):
     """マネージャー一覧を構造化されたリストで表示（フィルタリング機能付き）"""
     if managers_df.empty:
@@ -113,17 +124,19 @@ def display_manager_list(managers_df):
         margin-bottom: 0.3rem;
     }
     .metric-container {
-        background-color: white;
         padding: 0.3rem;
         border-radius: 0.3rem;
         border: 1px solid #e6e6e6;
         margin: 0;
+        transition: background-color 0.3s;
     }
     .metric-value {
         font-size: 0.9rem;
         font-weight: bold;
         margin: 0;
         padding: 0;
+        color: white;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
     }
     .metric-label {
         font-size: 0.8rem;
@@ -206,8 +219,8 @@ def display_manager_list(managers_df):
                         with col:
                             st.markdown(
                                 f'''
-                                <div class="metric-container">
-                                    <div class="metric-label">{label}</div>
+                                <div class="metric-container" style="background-color: {get_score_color(score)}">
+                                    <div class="metric-label" style="color: white">{label}</div>
                                     <div class="metric-value">{score:.1f}/5.0</div>
                                 </div>
                                 ''',

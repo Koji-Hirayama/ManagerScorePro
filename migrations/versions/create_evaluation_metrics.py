@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'create_evaluation_metrics'
-down_revision = 'initial_schema'
+down_revision = 'create_tables'
 branch_labels = None
 depends_on = None
 
