@@ -1,5 +1,5 @@
 import streamlit as st
-from database import Database
+from database import DatabaseManager
 from ai_advisor import AIAdvisor
 from visualization import create_radar_chart, create_trend_chart, create_growth_chart
 from components import display_manager_list, display_score_details
@@ -18,7 +18,7 @@ if 'selected_manager' not in st.session_state:
 
 # Initialize database
 try:
-    db = Database()
+    db = DatabaseManager()
 except Exception as e:
     st.error(f"データベース接続エラー: {str(e)}")
     st.stop()
