@@ -180,10 +180,10 @@ class DatabaseManager:
                     e.strategy_score
                 FROM managers m
                 LEFT JOIN evaluations e ON m.id = e.manager_id
-                WHERE m.id = %s
+                WHERE m.id = %(manager_id)s
                 ORDER BY e.evaluation_date DESC;
             '''
-            return pd.read_sql(query, self.engine, params=[manager_id])
+            return pd.read_sql(query, self.engine, params={'manager_id': manager_id})
         except Exception as e:
             logging.error(f"マネージャー詳細データ取得エラー: {str(e)}")
             raise RuntimeError("マネージャー詳細の取得中にエラーが発生しました")
