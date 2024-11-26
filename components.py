@@ -1,16 +1,11 @@
 import streamlit as st
+from sqlalchemy import text
 
 def display_manager_list(managers_df):
     """マネージャー一覧を構造化されたリストで表示（フィルタリング機能付き）"""
     if managers_df.empty:
         st.warning("マネージャーデータが見つかりません")
         return
-
-    # セッションステートの初期化
-    if 'sort_column' not in st.session_state:
-        st.session_state.sort_column = 'name'
-    if 'sort_order' not in st.session_state:
-        st.session_state.sort_order = True  # True: 昇順, False: 降順
 
     # フィルターとソート設定
     st.subheader("🔍 フィルター & ソート設定")
@@ -34,7 +29,6 @@ def display_manager_list(managers_df):
     
     with filter_col3:
         if st.button("🔄 リセット", use_container_width=True):
-            # セッションステートのクリア
             st.session_state.name_filter = ""
             st.session_state.department_filter = "全て"
             st.session_state.sort_column = 'name'
@@ -56,15 +50,14 @@ def display_manager_list(managers_df):
             'avg_strategy': '📈 戦略'
         }
         
-        selected_sort = st.selectbox(
+        sort_column = st.selectbox(
             "並び替え項目",
             options=list(sort_options.keys()),
             format_func=lambda x: sort_options[x],
             key="sort_column",
             help="一覧の並び替えに使用する項目を選択"
         )
-        st.session_state.sort_column = selected_sort
-
+    
     with sort_col2:
         sort_order = st.selectbox(
             "並び順",
@@ -73,22 +66,24 @@ def display_manager_list(managers_df):
             key="sort_order",
             help="昇順/降順を選択"
         )
-        st.session_state.sort_order = sort_order
 
-    # フィルタリングロジックの実装
+    # フィルタリングとソートの適用
     filtered_df = managers_df.copy()
 
+    # 名前フィルター
     if name_filter:
         filtered_df = filtered_df[filtered_df["name"].str.contains(name_filter, case=False, na=False)]
 
+    # 部門フィルター
     if department_filter != "全て":
         filtered_df = filtered_df[filtered_df["department"] == department_filter]
 
-    # ソートの適用
-    filtered_df = filtered_df.sort_values(
-        by=st.session_state.sort_column,
-        ascending=st.session_state.sort_order
-    )
+    # ソート
+    try:
+        filtered_df = filtered_df.sort_values(by=sort_column, ascending=sort_order)
+    except Exception as e:
+        st.error(f"ソート処理中にエラーが発生しました: {str(e)}")
+        filtered_df = filtered_df.sort_values(by='name', ascending=True)
 
     # フィルター後のデータ件数表示
     st.markdown(f"**表示件数**: {len(filtered_df)}件")
@@ -149,7 +144,7 @@ def display_manager_list(managers_df):
         st.markdown("### ⚡ アクション")
     st.markdown("<hr style='margin: 0.5rem 0'>", unsafe_allow_html=True)
 
-    # フィルタリング後のマネージャーリストの表示
+    # マネージャーリストの表示
     for _, manager in filtered_df.iterrows():
         with st.container():
             st.markdown('<div class="manager-row">', unsafe_allow_html=True)
