@@ -8,14 +8,14 @@ def display_manager_list(managers_df):
 
     # フィルターコントロール
     st.subheader("🔍 フィルター設定")
-    filter_cols = st.columns([2, 2, 1])
+    filter_cols = st.columns([1, 1])
     
     with filter_cols[0]:
         name_filter = st.text_input(
             "名前で検索",
             placeholder="マネージャー名を入力...",
-            help="マネージャーの名前で検索できます"
-        )
+            help="マネージャーの名前で部分一致検索できます（大文字小文字区別なし）"
+        ).strip()
     
     with filter_cols[1]:
         departments = ['全て'] + sorted(managers_df['department'].unique().tolist())
@@ -24,31 +24,22 @@ def display_manager_list(managers_df):
             departments,
             help="特定の部門のマネージャーのみを表示"
         )
-    
-    with filter_cols[2]:
-        score_filter = st.slider(
-            "最小平均スコア",
-            min_value=1.0,
-            max_value=5.0,
-            value=1.0,
-            step=0.5,
-            help="指定したスコア以上のマネージャーを表示"
-        )
 
     # フィルタリングの適用
     filtered_df = managers_df.copy()
     
+    # 名前でのフィルタリング（部分一致、大文字小文字区別なし）
     if name_filter:
-        filtered_df = filtered_df[filtered_df['name'].str.contains(name_filter, case=False, na=False)]
+        filtered_df = filtered_df[
+            filtered_df['name'].str.lower().str.contains(
+                name_filter.lower(), 
+                na=False
+            )
+        ]
     
+    # 部門でのフィルタリング
     if dept_filter != '全て':
         filtered_df = filtered_df[filtered_df['department'] == dept_filter]
-    
-    # 平均スコアの計算とフィルタリング
-    score_columns = ['avg_communication', 'avg_support', 'avg_goal', 
-                    'avg_leadership', 'avg_problem', 'avg_strategy']
-    filtered_df['average_score'] = filtered_df[score_columns].mean(axis=1)
-    filtered_df = filtered_df[filtered_df['average_score'] >= score_filter]
     # フィルタリング結果のカウント表示
     st.markdown(f"**表示中**: {len(filtered_df)}名のマネージャー")
     st.markdown("---")
