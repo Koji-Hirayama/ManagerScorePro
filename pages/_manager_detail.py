@@ -22,6 +22,11 @@ try:
         
     latest_scores = manager_data.iloc[0]
     
+    # マネージャー情報を表示
+    st.header(f"👤 {latest_scores['name']}")
+    st.subheader(f"📋 部門: {latest_scores['department']}")
+    st.markdown("---")
+    
     col1, col2 = st.columns([2, 1])
     
     with col1:
