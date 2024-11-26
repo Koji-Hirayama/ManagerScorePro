@@ -177,15 +177,40 @@ try:
                                     key=f"effect_{suggestion['id']}"
                                 )
                                 
-                                # 詳細なフィードバックの入力
+                                # フィードバックセクション
+                                st.markdown("#### フィードバック")
                                 feedback_text = st.text_area(
-                                    "フィードバックコメント",
+                                    "フィードバックコメント :red[*]",
                                     key=f"feedback_{suggestion['id']}",
-                                    help="提案の効果や改善点について具体的なフィードバックを入力してください",
+                                    placeholder="提案の効果や改善点について具体的に記入してください",
+                                    help="提案の実装結果や効果、今後の改善点などを記録します",
                                     max_chars=500
                                 )
+
+                                # 文字数カウンター
+                                if feedback_text:
+                                    st.caption(f"文字数: {len(feedback_text)}/500")
+
+                                # フィードバック履歴の表示
+                                if pd.notna(suggestion['feedback_text']):
+                                    st.markdown("##### 過去のフィードバック")
+                                    st.info(
+                                        f"📝 {suggestion['feedback_text']}\n"
+                                        f"🕒 記録日時: {suggestion['created_at'].strftime('%Y年%m月%d日 %H:%M')}"
+                                    )
+
+                                # 実装状態と効果評価のバッジ表示
+                                status_col1, status_col2 = st.columns(2)
+                                with status_col1:
+                                    st.markdown(
+                                        f"実装状態: {'🟢 実装済み' if suggestion['is_implemented'] else '🔴 未実装'}"
+                                    )
+                                with status_col2:
+                                    if pd.notna(suggestion['effectiveness_rating']):
+                                        rating_emoji = ["⭐"] * int(suggestion['effectiveness_rating'])
+                                        st.markdown(f"効果評価: {''.join(rating_emoji)}")
                             
-                            if st.button("状態を更新", key=f"update_{suggestion['id']}"):
+                            if st.button("状態を更新", key=f"update_{suggestion['id']}", type="primary"):
                                 st.session_state.ai_advisor.update_suggestion_status(
                                     suggestion['id'],
                                     is_implemented=is_implemented,
