@@ -15,7 +15,7 @@ class AIAdvisor:
         if 'api_calls_count' not in st.session_state:
             st.session_state.api_calls_count = 0
         if 'ai_model' not in st.session_state:
-            st.session_state.ai_model = 'gpt-4'
+            st.session_state.ai_model = 'gpt-3.5-turbo'  # デフォルトを変更
         
         # サイドバーにモデル選択UIを追加
         st.sidebar.subheader("AI設定")
