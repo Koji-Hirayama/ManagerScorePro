@@ -64,24 +64,24 @@ class AIAdvisor:
 
         # AI提案生成
         prompt = f"""
-        Given the following manager evaluation scores:
-        - Communication & Feedback: {scores['communication']}/5
-        - Support & Empowerment: {scores['support']}/5
-        - Goal Management: {scores['goal_management']}/5
-        - Leadership & Decision Making: {scores['leadership']}/5
-        - Problem Solving: {scores['problem_solving']}/5
-        - Strategy & Growth: {scores['strategy']}/5
+以下のマネージャーの評価スコアに基づいて改善提案を行ってください：
+- コミュニケーション・フィードバック: {scores['communication']}/5
+- サポート・エンパワーメント: {scores['support']}/5
+- 目標管理・成果達成: {scores['goal_management']}/5
+- リーダーシップ・意思決定: {scores['leadership']}/5
+- 問題解決力: {scores['problem_solving']}/5
+- 戦略・成長支援: {scores['strategy']}/5
 
-        Please provide specific, actionable suggestions for improvement in the areas with lower scores.
-        Focus on practical steps that can be taken to enhance management skills.
-        """
+特に低いスコアの領域に焦点を当て、具体的で実行可能な改善提案を提供してください。
+マネジメントスキル向上のための実践的なステップを含めてください。
+"""
 
         try:
             client = openai.OpenAI()
             response = client.chat.completions.create(
                 model=st.session_state.ai_model,
                 messages=[
-                    {"role": "system", "content": "You are an experienced management coach providing actionable advice."},
+                    {"role": "system", "content": "あなたは経験豊富なマネジメントコーチとして、実践的なアドバイスを提供します。"},
                     {"role": "user", "content": prompt}
                 ]
             )

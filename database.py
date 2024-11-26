@@ -164,6 +164,30 @@ class DatabaseManager:
             logging.error(f"マネージャー一覧取得エラー: {str(e)}")
             raise RuntimeError("マネージャー一覧の取得中にエラーが発生しました")
 
+    def get_manager_details(self, manager_id):
+        try:
+            query = '''
+                SELECT 
+                    m.id,
+                    m.name,
+                    m.department,
+                    e.evaluation_date,
+                    e.communication_score,
+                    e.support_score,
+                    e.goal_management_score,
+                    e.leadership_score,
+                    e.problem_solving_score,
+                    e.strategy_score
+                FROM managers m
+                LEFT JOIN evaluations e ON m.id = e.manager_id
+                WHERE m.id = %s
+                ORDER BY e.evaluation_date DESC;
+            '''
+            return pd.read_sql(query, self.engine, params=[manager_id])
+        except Exception as e:
+            logging.error(f"マネージャー詳細データ取得エラー: {str(e)}")
+            raise RuntimeError("マネージャー詳細の取得中にエラーが発生しました")
+
     def get_department_analysis(self):
         """部門別の評価スコアを取得"""
         try:
