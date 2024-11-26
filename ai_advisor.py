@@ -1,11 +1,56 @@
 import openai
 import os
+import streamlit as st
+from typing import Dict, Optional
+import json
 
 class AIAdvisor:
     def __init__(self):
         openai.api_key = os.getenv('OPENAI_API_KEY')
+        self.debug_mode = os.getenv('DEBUG', '').lower() == 'true'
+        if 'ai_cache' not in st.session_state:
+            st.session_state.ai_cache = {}
+        if 'api_calls_count' not in st.session_state:
+            st.session_state.api_calls_count = 0
 
-    def generate_improvement_suggestions(self, scores: dict) -> str:
+    def _get_cache_key(self, scores: Dict[str, float]) -> str:
+        """スコアから一意のキャッシュキーを生成"""
+        sorted_scores = sorted(scores.items())
+        return json.dumps(sorted_scores)
+
+    def _get_debug_response(self, scores: Dict[str, float]) -> str:
+        """デバッグモード用のダミーレスポンスを生成"""
+        lowest_score = min(scores.values())
+        lowest_skills = [k for k, v in scores.items() if v == lowest_score]
+        
+        return f"""デバッグモード: 改善提案
+最も注力すべき領域: {', '.join(lowest_skills)}
+スコア: {lowest_score}/5
+
+1. 定期的な1on1ミーティングの実施
+2. 具体的なフィードバックの提供
+3. 目標設定と進捗管理の改善
+4. チーム内コミュニケーションの活性化
+
+これはデバッグモードでの表示です。実際のAPI呼び出しは行われていません。"""
+
+    def generate_improvement_suggestions(self, scores: Dict[str, float]) -> str:
+        """改善提案を生成（キャッシュ、デバッグモード、API制限付き）"""
+        # APIコール回数制限チェック
+        MAX_API_CALLS = 50  # 1セッションあたりの最大API呼び出し回数
+        if st.session_state.api_calls_count >= MAX_API_CALLS:
+            return "API呼び出し回数の制限に達しました。しばらく時間をおいて再度お試しください。"
+
+        # デバッグモードチェック
+        if self.debug_mode:
+            return self._get_debug_response(scores)
+
+        # キャッシュチェック
+        cache_key = self._get_cache_key(scores)
+        if cache_key in st.session_state.ai_cache:
+            return st.session_state.ai_cache[cache_key]
+
+        # AI提案生成
         prompt = f"""
         Given the following manager evaluation scores:
         - Communication & Feedback: {scores['communication']}/5
@@ -29,7 +74,13 @@ class AIAdvisor:
                 ]
             )
             
-            return response.choices[0].message.content
+            suggestion = response.choices[0].message.content
+            # キャッシュに保存
+            st.session_state.ai_cache[cache_key] = suggestion
+            # API呼び出し回数をインクリメント
+            st.session_state.api_calls_count += 1
+            
+            return suggestion
         except Exception as e:
             print(f"AI提案生成エラー: {str(e)}")
             return "AI提案の生成中にエラーが発生しました。"

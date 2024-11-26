@@ -1,3 +1,4 @@
+import components
 import streamlit as st
 from database import DatabaseManager
 from ai_advisor import AIAdvisor
