@@ -14,6 +14,13 @@ class AIAdvisor:
         self.client = OpenAI(api_key=api_key)
         self.debug_mode = os.getenv('DEBUG', '').lower() == 'true'
         
+        # データベース接続の初期化
+        from sqlalchemy import create_engine, text
+        import pandas as pd
+        import logging
+        
+        self.engine = create_engine(os.environ['DATABASE_URL'])
+        
         # セッションステートの初期化
         if 'ai_cache' not in st.session_state:
             st.session_state.ai_cache = {}
@@ -56,6 +63,79 @@ class AIAdvisor:
     def clear_cache(self):
         """キャッシュをクリア"""
         st.session_state.ai_cache = {}
+
+    def save_suggestion(self, manager_id: int, suggestion_text: str):
+        """AIの提案を履歴として保存"""
+        try:
+            with self.engine.connect() as conn:
+                query = """
+                    INSERT INTO ai_suggestion_history (manager_id, suggestion_text)
+                    VALUES (:manager_id, :suggestion_text);
+                """
+                conn.execute(text(query), {
+                    'manager_id': manager_id,
+                    'suggestion_text': suggestion_text
+                })
+                conn.commit()
+        except Exception as e:
+            logging.error(f"提案の保存中にエラーが発生: {str(e)}")
+            raise
+
+    def get_suggestion_history(self, manager_id: int) -> pd.DataFrame:
+        """特定のマネージャーのAI提案履歴を取得"""
+        try:
+            query = """
+                SELECT 
+                    id,
+                    suggestion_text,
+                    created_at,
+                    is_implemented,
+                    implementation_date,
+                    effectiveness_rating
+                FROM ai_suggestion_history
+                WHERE manager_id = :manager_id
+                ORDER BY created_at DESC;
+            """
+            return pd.read_sql(
+                query, 
+                self.engine, 
+                params={'manager_id': manager_id}
+            )
+        except Exception as e:
+            logging.error(f"提案履歴の取得中にエラーが発生: {str(e)}")
+            return pd.DataFrame()
+
+    def update_suggestion_status(
+        self, 
+        suggestion_id: int, 
+        is_implemented: bool = None, 
+        effectiveness_rating: int = None
+    ):
+        """AI提案の実装状態と効果を更新"""
+        try:
+            with self.engine.connect() as conn:
+                update_dict = {}
+                if is_implemented is not None:
+                    update_dict['is_implemented'] = is_implemented
+                    if is_implemented:
+                        update_dict['implementation_date'] = datetime.now()
+                if effectiveness_rating is not None:
+                    update_dict['effectiveness_rating'] = effectiveness_rating
+
+                if update_dict:
+                    query = """
+                        UPDATE ai_suggestion_history
+                        SET {}
+                        WHERE id = :suggestion_id;
+                    """.format(
+                        ', '.join(f"{k} = :{k}" for k in update_dict.keys())
+                    )
+                    update_dict['suggestion_id'] = suggestion_id
+                    conn.execute(text(query), update_dict)
+                    conn.commit()
+        except Exception as e:
+            logging.error(f"提案状態の更新中にエラーが発生: {str(e)}")
+            raise
 
     def _get_debug_response(self, scores: Dict[str, float]) -> str:
         """デバッグモード用のダミーレスポンスを生成"""
