@@ -236,7 +236,7 @@ def display_manager_list(managers_df):
                 st.markdown('</div>', unsafe_allow_html=True)
 
 def display_score_details(scores):
-    """スコアの詳細表示"""
+    """スコアの詳細表示（カラーコード付き）"""
     metrics = {
         'コミュニケーション・フィードバック': scores['communication_score'],
         'サポート・エンパワーメント': scores['support_score'],
@@ -247,4 +247,20 @@ def display_score_details(scores):
     }
     
     for metric, score in metrics.items():
-        st.metric(label=metric, value=f"{score:.1f}/5.0")
+        color = get_score_color(score)
+        st.markdown(
+            f"""
+            <div style="
+                background-color: {color};
+                padding: 1rem;
+                border-radius: 0.5rem;
+                margin: 0.5rem 0;
+                color: white;
+                text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+            ">
+                <div style="font-size: 0.9rem;">{metric}</div>
+                <div style="font-size: 1.2rem; font-weight: bold;">{score:.1f}/5.0</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )

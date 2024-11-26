@@ -4,6 +4,17 @@ import streamlit as st
 from ai_advisor import AIAdvisor
 from utils import format_scores_for_ai
 
+def get_score_emoji(score):
+    """スコアに応じた絵文字を返す"""
+    if score >= 4.0:
+        return "🟢"  # 緑（優秀）
+    elif score >= 3.0:
+        return "🔵"  # 青（良好）
+    elif score >= 2.0:
+        return "🟡"  # 黄（要改善）
+    else:
+        return "🔴"  # 赤（要注意）
+
 def generate_manager_report(manager_data, growth_data, ai_advisor):
     """マネージャーの評価レポートを生成"""
     if manager_data.empty:
@@ -21,17 +32,17 @@ def generate_manager_report(manager_data, growth_data, ai_advisor):
 - 部門: {latest_scores['department']}
 
 ## 現在の評価スコア
-| 評価項目 | スコア |
-|----------|--------|
-| コミュニケーション | {latest_scores['communication_score']:.1f}/5.0 |
-| サポート | {latest_scores['support_score']:.1f}/5.0 |
-| 目標管理 | {latest_scores['goal_management_score']:.1f}/5.0 |
-| リーダーシップ | {latest_scores['leadership_score']:.1f}/5.0 |
-| 問題解決力 | {latest_scores['problem_solving_score']:.1f}/5.0 |
-| 戦略 | {latest_scores['strategy_score']:.1f}/5.0 |
+| 評価項目 | スコア | 評価 |
+|----------|--------|------|
+| コミュニケーション | {latest_scores['communication_score']:.1f}/5.0 | {get_score_emoji(latest_scores['communication_score'])} |
+| サポート | {latest_scores['support_score']:.1f}/5.0 | {get_score_emoji(latest_scores['support_score'])} |
+| 目標管理 | {latest_scores['goal_management_score']:.1f}/5.0 | {get_score_emoji(latest_scores['goal_management_score'])} |
+| リーダーシップ | {latest_scores['leadership_score']:.1f}/5.0 | {get_score_emoji(latest_scores['leadership_score'])} |
+| 問題解決力 | {latest_scores['problem_solving_score']:.1f}/5.0 | {get_score_emoji(latest_scores['problem_solving_score'])} |
+| 戦略 | {latest_scores['strategy_score']:.1f}/5.0 | {get_score_emoji(latest_scores['strategy_score'])} |
 
 ## 総合評価
-総合スコア: {calculate_overall_score(latest_scores):.1f}/5.0
+総合スコア: {calculate_overall_score(latest_scores):.1f}/5.0 {get_score_emoji(calculate_overall_score(latest_scores))}
 """
 
     # 成長分析セクション
