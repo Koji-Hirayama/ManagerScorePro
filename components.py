@@ -1,33 +1,59 @@
 import streamlit as st
 
 def display_manager_list(managers_df):
+    """マネージャー一覧を構造化されたリストで表示"""
     if managers_df.empty:
         st.warning("マネージャーデータが見つかりません")
         return
 
-    # ヘッダー部分の表示
-    with st.container():
-        cols = st.columns([2, 4, 1])
-        headers = ["マネージャー情報", "評価スコア", "アクション"]
-        for col, header in zip(cols, headers):
-            with col:
-                st.markdown(f"**{header}**")
-        st.markdown("---")
+    # カスタムCSS
+    st.markdown("""
+    <style>
+    .manager-header {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .manager-row {
+        padding: 1rem 0;
+        border-bottom: 1px solid #e6e6e6;
+    }
+    .metric-container {
+        background-color: white;
+        padding: 0.5rem;
+        border-radius: 0.3rem;
+        border: 1px solid #e6e6e6;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ヘッダーセクション
+    st.markdown('<div class="manager-header">', unsafe_allow_html=True)
+    header_cols = st.columns([2, 6, 1])
+    with header_cols[0]:
+        st.markdown("### 👤 基本情報")
+    with header_cols[1]:
+        st.markdown("### 📊 評価スコア")
+    with header_cols[2]:
+        st.markdown("### ⚡ アクション")
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # マネージャーリストの表示
     for _, manager in managers_df.iterrows():
         with st.container():
-            col1, col2, col3 = st.columns([2, 4, 1])
+            st.markdown('<div class="manager-row">', unsafe_allow_html=True)
+            cols = st.columns([2, 6, 1])
             
-            # マネージャー基本情報
-            with col1:
+            # 基本情報
+            with cols[0]:
                 st.markdown(f"### {manager['name']}")
-                st.caption(f"📊 部門: {manager['department']}")
+                st.markdown(f"**部門**: {manager['department']}")
             
             # スコア情報
-            with col2:
-                col_a, col_b = st.columns(2)
-                scores = {
+            with cols[1]:
+                metric_cols = st.columns(6)
+                metrics = {
                     "🗣️ コミュニケーション": manager['avg_communication'],
                     "🤝 サポート": manager['avg_support'],
                     "🎯 目標管理": manager['avg_goal'],
@@ -36,26 +62,27 @@ def display_manager_list(managers_df):
                     "📈 戦略": manager['avg_strategy']
                 }
                 
-                # スコアを2列に分けて表示
-                for i, (metric, score) in enumerate(scores.items()):
-                    with col_a if i < 3 else col_b:
+                for (label, score), col in zip(metrics.items(), metric_cols):
+                    with col:
+                        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
                         st.metric(
-                            label=metric,
+                            label=label,
                             value=f"{score:.1f}",
-                            delta=f"{score:.1f}/5.0"
+                            delta=f"{score:.1f}/5.0",
+                            label_visibility="visible"
                         )
+                        st.markdown('</div>', unsafe_allow_html=True)
             
             # アクションボタン
-            with col3:
-                st.write("")  # スペース調整
-                st.write("")  # スペース調整
-                if st.button("👉 詳細を見る", key=f"btn_manager_{manager['id']}"):
+            with cols[2]:
+                if st.button("👉 詳細", key=f"btn_manager_{manager['id']}", use_container_width=True):
                     st.session_state.selected_manager = manager['id']
                     st.switch_page("pages/_manager_detail.py")
             
-            st.markdown("---")
+            st.markdown('</div>', unsafe_allow_html=True)
 
 def display_score_details(scores):
+    """スコアの詳細表示"""
     metrics = {
         'コミュニケーション・フィードバック': scores['communication_score'],
         'サポート・エンパワーメント': scores['support_score'],
