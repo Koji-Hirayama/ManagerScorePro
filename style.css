@@ -1,0 +1,47 @@
+/* メインコンテンツのスタイル */
+.main {
+    padding: 1rem;
+}
+
+/* サイドバーのスタイル */
+.sidebar .sidebar-content {
+    background-color: #f8f9fa;
+}
+
+/* データ表示用のカードスタイル */
+.stMetric {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* グラフコンテナのスタイル */
+.chart-container {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    margin: 1rem 0;
+}
+
+/* ナビゲーションのアクティブ状態 */
+.sidebar .sidebar-content .stRadio > label {
+    font-weight: 500;
+}
+
+/* メトリクス表示の改善 */
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.5rem 0;
+}
+
+/* レポートセクションのスタイル */
+.report-section {
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    margin: 1rem 0;
+}

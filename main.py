@@ -14,6 +14,10 @@ st.set_page_config(
     layout="wide"
 )
 
+# Load custom CSS
+with open('style.css') as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 # Initialize session state
 if 'page' not in st.session_state:
     st.session_state.page = 'dashboard'
@@ -35,17 +39,38 @@ except Exception as e:
     ai_advisor = None
 
 # Main navigation
-st.sidebar.title("ナビゲーション")
+st.sidebar.title("マネージャー評価・育成支援システム")
+
+# ナビゲーションセクション
+st.sidebar.markdown("### メインメニュー")
 page = st.sidebar.radio(
-    "ページ選択",
-    ["ダッシュボード", "マネージャー詳細", "部門別分析", "評価指標設定"],
-    key="navigation"
+    "",
+    options=[
+        "📊 ダッシュボード",
+        "👥 マネージャー詳細",
+        "🏢 部門別分析",
+        "⚙️ 評価指標設定"
+    ],
+    key="navigation",
+    help="各ページの機能:\n"
+         "- ダッシュボード: 全体の評価状況を把握\n"
+         "- マネージャー詳細: 個別の詳細評価と成長分析\n"
+         "- 部門別分析: 部門ごとの比較と分析\n"
+         "- 評価指標設定: 評価基準のカスタマイズ"
 )
 
+# ページ名を標準化
+page_name = page.split(" ")[1]
+
 # ページ状態の更新を確実に行う
-if page != st.session_state.page:
-    st.session_state.page = page
+if page_name != st.session_state.page:
+    st.session_state.page = page_name
     st.rerun()
+
+# システム情報
+st.sidebar.markdown("---")
+st.sidebar.markdown("### システム情報")
+st.sidebar.info(f"最終更新: {datetime.now().strftime('%Y年%m月%d日 %H:%M')}")
 
 if page == "ダッシュボード":
     st.title("企業全体のマネージャー評価ダッシュボード")
