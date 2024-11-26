@@ -3,50 +3,37 @@ import streamlit as st
 def display_manager_list(managers_df):
     st.subheader("マネージャー一覧")
     
-    try:
-        if managers_df.empty:
-            st.warning("マネージャーデータが見つかりません")
-            return
+    if managers_df.empty:
+        st.warning("マネージャーデータが見つかりません")
+        return
         
-        # データテーブルとして表示
-        display_df = managers_df[[
-            'name', 'department',
-            'avg_communication', 'avg_support', 'avg_goal',
-            'avg_leadership', 'avg_problem', 'avg_strategy'
-        ]].copy()
-        
-        # カラム名を日本語に変更
-        display_df.columns = [
-            '名前', '部門',
-            'コミュニケーション', 'サポート', '目標管理',
-            'リーダーシップ', '問題解決力', '戦略'
-        ]
-        
-        # インタラクティブなデータテーブルを表示
-        st.dataframe(
-            display_df,
-            column_config={
-                '名前': st.column_config.Column(width=150),
-                '部門': st.column_config.Column(width=100),
-                'コミュニケーション': st.column_config.NumberColumn(format="%.1f", width=120),
-                'サポート': st.column_config.NumberColumn(format="%.1f", width=120),
-                '目標管理': st.column_config.NumberColumn(format="%.1f", width=120),
-                'リーダーシップ': st.column_config.NumberColumn(format="%.1f", width=120),
-                '問題解決力': st.column_config.NumberColumn(format="%.1f", width=120),
-                '戦略': st.column_config.NumberColumn(format="%.1f", width=120)
-            },
-            hide_index=True
-        )
-        
-        # 詳細ボタンを各行に追加
-        for _, manager in managers_df.iterrows():
-            if st.button(f"{manager['name']}の詳細を見る", key=f"btn_manager_{manager['id']}"):
-                st.session_state.selected_manager = manager['id']
-                st.switch_page("pages/manager_detail.py")
+    for _, manager in managers_df.iterrows():
+        with st.container():
+            col1, col2, col3 = st.columns([2, 4, 1])
+            
+            with col1:
+                st.write(f"**{manager['name']}**")
+                st.caption(f"部門: {manager['department']}")
+            
+            with col2:
+                scores = {
+                    "コミュニケーション": manager['avg_communication'],
+                    "サポート": manager['avg_support'],
+                    "目標管理": manager['avg_goal'],
+                    "リーダーシップ": manager['avg_leadership'],
+                    "問題解決力": manager['avg_problem'],
+                    "戦略": manager['avg_strategy']
+                }
                 
-    except Exception as e:
-        print(f"マネージャー一覧表示エラー: {str(e)}")
-        st.error("マネージャー一覧の表示中にエラーが発生しました")
+                for metric, score in scores.items():
+                    st.write(f"{metric}: {score:.1f}")
+            
+            with col3:
+                if st.button("詳細を見る", key=f"btn_manager_{manager['id']}"):
+                    st.session_state.selected_manager = manager['id']
+                    st.switch_page("pages/_manager_detail.py")
+            
+            st.markdown("---")
 
 def display_score_details(scores):
     metrics = {
