@@ -19,12 +19,17 @@ class AIAdvisor:
         Focus on practical steps that can be taken to enhance management skills.
         """
 
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an experienced management coach providing actionable advice."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        
-        return response.choices[0].message.content
+        try:
+            client = openai.OpenAI()
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an experienced management coach providing actionable advice."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"AI提案生成エラー: {str(e)}")
+            return "AI提案の生成中にエラーが発生しました。"

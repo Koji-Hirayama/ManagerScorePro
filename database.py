@@ -2,14 +2,28 @@ import os
 import psycopg2
 import pandas as pd
 from datetime import datetime, timedelta
+from datetime import datetime, timedelta
 
 class Database:
     def __init__(self):
         """データベース接続の初期化"""
-        self.conn = psycopg2.connect(
-            os.environ['DATABASE_URL']
-        )
-        self.create_tables()
+        try:
+            self.conn = psycopg2.connect(
+                os.environ['DATABASE_URL']
+            )
+            print("データベース接続成功")
+            self.create_tables()
+            
+            # データベースが空かチェックしてサンプルデータを投入
+            if self.is_database_empty():
+                print("データベースが空のため、サンプルデータを投入します")
+                if self.insert_sample_data():
+                    print("サンプルデータの投入が完了しました")
+                else:
+                    print("サンプルデータの投入に失敗しました")
+        except Exception as e:
+            print(f"データベース接続エラー: {str(e)}")
+            raise
 
     def create_tables(self):
         """テーブルの作成"""
@@ -37,37 +51,62 @@ class Database:
 
     def get_all_managers(self):
         """全マネージャーの最新の評価データを取得"""
-        query = """
-        SELECT 
-            m.id,
-            m.name,
-            m.department,
-            COALESCE(AVG(e.communication_score), 0) as avg_communication,
-            COALESCE(AVG(e.support_score), 0) as avg_support,
-            COALESCE(AVG(e.goal_management_score), 0) as avg_goal,
-            COALESCE(AVG(e.leadership_score), 0) as avg_leadership,
-            COALESCE(AVG(e.problem_solving_score), 0) as avg_problem,
-            COALESCE(AVG(e.strategy_score), 0) as avg_strategy
-        FROM managers m
-        LEFT JOIN evaluations e ON m.id = e.manager_id
-        GROUP BY m.id, m.name, m.department
-        ORDER BY m.name
-        """
-        return pd.read_sql(query, self.conn)
+        try:
+            query = """
+            SELECT 
+                m.id,
+                m.name,
+                m.department,
+                COALESCE(AVG(e.communication_score), 0) as avg_communication,
+                COALESCE(AVG(e.support_score), 0) as avg_support,
+                COALESCE(AVG(e.goal_management_score), 0) as avg_goal,
+                COALESCE(AVG(e.leadership_score), 0) as avg_leadership,
+                COALESCE(AVG(e.problem_solving_score), 0) as avg_problem,
+                COALESCE(AVG(e.strategy_score), 0) as avg_strategy
+            FROM managers m
+            LEFT JOIN evaluations e ON m.id = e.manager_id
+            GROUP BY m.id, m.name, m.department
+            ORDER BY m.name
+            """
+            print("マネージャーデータを取得中...")
+            df = pd.read_sql(query, self.conn)
+            print(f"取得完了: {len(df)}件のマネージャーデータを取得")
+            return df
+        except Exception as e:
+            print(f"マネージャーデータ取得エラー: {str(e)}")
+            raise
+
+    def is_database_empty(self):
+        """データベースが空かどうかをチェック"""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM managers")
+                manager_count = cur.fetchone()[0]
+                return manager_count == 0
+        except Exception as e:
+            print(f"データベース確認エラー: {str(e)}")
+            return True
 
     def get_manager_details(self, manager_id):
         """特定のマネージャーの評価履歴を取得"""
-        query = """
-        SELECT 
-            e.*,
-            m.name,
-            m.department
-        FROM evaluations e
-        JOIN managers m ON e.manager_id = m.id
-        WHERE m.id = %s
-        ORDER BY evaluation_date DESC
-        """
-        return pd.read_sql(query, self.conn, params=(manager_id,))
+        try:
+            query = """
+            SELECT 
+                e.*,
+                m.name,
+                m.department
+            FROM evaluations e
+            JOIN managers m ON e.manager_id = m.id
+            WHERE m.id = %s
+            ORDER BY evaluation_date DESC
+            """
+            print(f"マネージャーID {manager_id} の詳細データを取得中...")
+            df = pd.read_sql(query, self.conn, params=(manager_id,))
+            print(f"取得完了: {len(df)}件の評価データを取得")
+            return df
+        except Exception as e:
+            print(f"マネージャー詳細データ取得エラー: {str(e)}")
+            raise
 
     def insert_sample_data(self):
         """サンプルデータを投入する関数"""

@@ -3,27 +3,39 @@ import streamlit as st
 def display_manager_list(managers_df):
     st.subheader("マネージャー一覧")
     
-    for _, manager in managers_df.iterrows():
-        col1, col2 = st.columns([1, 4])
-        
-        with col1:
-            st.write(manager['name'])
-        
-        with col2:
-            avg_score = (
-                manager['avg_communication'] +
-                manager['avg_support'] +
-                manager['avg_goal'] +
-                manager['avg_leadership'] +
-                manager['avg_problem'] +
-                manager['avg_strategy']
-            ) / 6
+    try:
+        if managers_df.empty:
+            st.warning("マネージャーデータが見つかりません")
+            return
             
-            st.progress(avg_score / 5)
+        for _, manager in managers_df.iterrows():
+            col1, col2 = st.columns([1, 4])
             
-        if st.button(f"{manager['name']}の詳細を見る", key=f"btn_{manager['id']}"):
-            st.session_state.selected_manager = manager['id']
-            st.session_state.page = 'detail'
+            with col1:
+                st.write(f"{manager['name']} ({manager['department']})")
+            
+            with col2:
+                try:
+                    avg_score = (
+                        float(manager['avg_communication']) +
+                        float(manager['avg_support']) +
+                        float(manager['avg_goal']) +
+                        float(manager['avg_leadership']) +
+                        float(manager['avg_problem']) +
+                        float(manager['avg_strategy'])
+                    ) / 6
+                    
+                    st.progress(min(avg_score / 5, 1.0))
+                except (ValueError, TypeError) as e:
+                    print(f"スコア計算エラー - マネージャー {manager['name']}: {str(e)}")
+                    st.error("スコアの計算中にエラーが発生しました")
+                
+            if st.button(f"{manager['name']}の詳細を見る", key=f"btn_{manager['id']}"):
+                st.session_state.selected_manager = manager['id']
+                st.session_state.page = 'detail'
+    except Exception as e:
+        print(f"マネージャー一覧表示エラー: {str(e)}")
+        st.error("マネージャー一覧の表示中にエラーが発生しました")
 
 def display_score_details(scores):
     metrics = {

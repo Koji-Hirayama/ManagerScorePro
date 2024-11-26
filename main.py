@@ -16,9 +16,19 @@ if 'page' not in st.session_state:
 if 'selected_manager' not in st.session_state:
     st.session_state.selected_manager = None
 
-# Initialize classes
-db = Database()
-ai_advisor = AIAdvisor()
+# Initialize database
+try:
+    db = Database()
+except Exception as e:
+    st.error(f"データベース接続エラー: {str(e)}")
+    st.stop()
+
+# Initialize AI advisor
+try:
+    ai_advisor = AIAdvisor()
+except Exception as e:
+    st.warning("AI機能は現在利用できません。基本機能のみ使用可能です。")
+    ai_advisor = None
 
 # Main navigation
 st.sidebar.title("ナビゲーション")
@@ -53,9 +63,13 @@ if page == "ダッシュボード":
             st.metric(label=metric.title(), value=f"{score:.1f}/5.0")
     
     # AI Suggestions
-    st.subheader("AI改善提案")
-    ai_suggestions = ai_advisor.generate_improvement_suggestions(company_avg)
-    st.write(ai_suggestions)
+    if ai_advisor:
+        st.subheader("AI改善提案")
+        try:
+            ai_suggestions = ai_advisor.generate_improvement_suggestions(company_avg)
+            st.write(ai_suggestions)
+        except Exception as e:
+            st.warning("AI提案の生成中にエラーが発生しました")
     
     # Manager List
     st.markdown("---")
@@ -94,10 +108,14 @@ elif page == "マネージャー詳細":
         st.plotly_chart(trend_fig, use_container_width=True)
         
         # AI Suggestions
-        st.subheader("個別AI改善提案")
-        individual_scores = format_scores_for_ai(latest_scores)
-        ai_suggestions = ai_advisor.generate_improvement_suggestions(individual_scores)
-        st.write(ai_suggestions)
+        if ai_advisor:
+            st.subheader("個別AI改善提案")
+            try:
+                individual_scores = format_scores_for_ai(latest_scores)
+                ai_suggestions = ai_advisor.generate_improvement_suggestions(individual_scores)
+                st.write(ai_suggestions)
+            except Exception as e:
+                st.warning("AI提案の生成中にエラーが発生しました")
         
     else:
         st.info("マネージャーを選択してください")
