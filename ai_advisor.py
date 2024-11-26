@@ -112,9 +112,13 @@ class AIAdvisor:
                 SELECT 
                     id,
                     suggestion_text,
-                    created_at,
+                    created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo' as created_at,
                     is_implemented,
-                    implementation_date,
+                    CASE 
+                        WHEN implementation_date IS NOT NULL 
+                        THEN implementation_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo'
+                        ELSE NULL 
+                    END as implementation_date,
                     effectiveness_rating
                 FROM ai_suggestion_history
                 WHERE manager_id = :manager_id

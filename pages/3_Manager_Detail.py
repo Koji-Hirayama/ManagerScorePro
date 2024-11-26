@@ -147,7 +147,7 @@ try:
                 if not suggestion_history.empty:
                     for _, suggestion in suggestion_history.iterrows():
                         with st.expander(
-                            f"提案 ({suggestion['created_at'].strftime('%Y-%m-%d %H:%M')})",
+                            f"提案 ({suggestion['created_at'].strftime('%Y年%m月%d日 %H:%M')})",
                             expanded=False
                         ):
                             st.write(suggestion['suggestion_text'])
