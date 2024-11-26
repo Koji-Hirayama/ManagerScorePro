@@ -107,6 +107,63 @@ class DatabaseManager:
         finally:
             session.close()
 
+    def get_evaluation_metrics(self):
+        """評価指標の一覧を取得"""
+        try:
+            query = '''
+                SELECT 
+                    id,
+                    name,
+                    description,
+                    category,
+                    weight
+                FROM evaluation_metrics
+                ORDER BY category, name;
+            '''
+            return pd.read_sql(query, self.engine)
+        except Exception as e:
+            logging.error(f"評価指標一覧取得エラー: {str(e)}")
+            raise RuntimeError("評価指標一覧の取得中にエラーが発生しました")
+
+    def add_evaluation_metric(self, name: str, description: str, category: str, weight: float):
+        """新しい評価指標を追加"""
+        try:
+            query = '''
+                INSERT INTO evaluation_metrics (name, description, category, weight)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id;
+            '''
+            with self.engine.connect() as conn:
+                result = conn.execute(text(query), [name, description, category, weight])
+                conn.commit()
+                return result.fetchone()[0]
+        except Exception as e:
+            logging.error(f"評価指標追加エラー: {str(e)}")
+            raise RuntimeError("評価指標の追加中にエラーが発生しました")
+
+    def get_all_managers(self):
+        try:
+            query = '''
+                SELECT 
+                    m.id,
+                    m.name,
+                    m.department,
+                    AVG(e.communication_score) as avg_communication,
+                    AVG(e.support_score) as avg_support,
+                    AVG(e.goal_management_score) as avg_goal,
+                    AVG(e.leadership_score) as avg_leadership,
+                    AVG(e.problem_solving_score) as avg_problem,
+                    AVG(e.strategy_score) as avg_strategy
+                FROM managers m
+                LEFT JOIN evaluations e ON m.id = e.manager_id
+                GROUP BY m.id, m.name, m.department
+                ORDER BY m.name;
+            '''
+            return pd.read_sql(query, self.engine)
+        except Exception as e:
+            logging.error(f"マネージャー一覧取得エラー: {str(e)}")
+            raise RuntimeError("マネージャー一覧の取得中にエラーが発生しました")
+
     def __del__(self):
         """デストラクタ：エンジンの破棄"""
         if hasattr(self, 'engine'):
