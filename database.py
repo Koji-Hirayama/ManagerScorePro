@@ -188,6 +188,38 @@ class DatabaseManager:
             logging.error(f"マネージャー詳細データ取得エラー: {str(e)}")
             raise RuntimeError("マネージャー詳細の取得中にエラーが発生しました")
 
+    def analyze_growth(self, manager_id):
+        """マネージャーの成長率を分析"""
+        try:
+            query = '''
+                WITH evaluation_periods AS (
+                    SELECT 
+                        manager_id,
+                        evaluation_date,
+                        (communication_score + support_score + goal_management_score + 
+                         leadership_score + problem_solving_score + strategy_score) / 6.0 as avg_score,
+                        LAG((communication_score + support_score + goal_management_score + 
+                            leadership_score + problem_solving_score + strategy_score) / 6.0) 
+                        OVER (PARTITION BY manager_id ORDER BY evaluation_date) as prev_score
+                    FROM evaluations
+                    WHERE manager_id = %(manager_id)s
+                    ORDER BY evaluation_date DESC
+                )
+                SELECT 
+                    evaluation_date,
+                    avg_score,
+                    CASE 
+                        WHEN prev_score IS NOT NULL 
+                        THEN ((avg_score - prev_score) / prev_score * 100)
+                        ELSE 0 
+                    END as growth_rate
+                FROM evaluation_periods;
+            '''
+            return pd.read_sql(query, self.engine, params={'manager_id': manager_id})
+        except Exception as e:
+            logging.error(f"成長分析データ取得エラー: {str(e)}")
+            return pd.DataFrame()  # エラー時は空のDataFrameを返す
+
     def get_department_analysis(self):
         """部門別の評価スコアを取得"""
         try:

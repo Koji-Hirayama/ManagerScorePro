@@ -35,7 +35,7 @@ def display_manager_list(managers_df):
             if st.button(f"{manager['name']}の詳細を見る", key=unique_key):
                 st.session_state.selected_manager = manager['id']
                 st.session_state.page = 'マネージャー詳細'
-                st.rerun()
+                st.switch_page("main.py")
     except Exception as e:
         print(f"マネージャー一覧表示エラー: {str(e)}")
         st.error("マネージャー一覧の表示中にエラーが発生しました")
