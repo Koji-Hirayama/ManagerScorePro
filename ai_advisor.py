@@ -30,6 +30,21 @@ class AIAdvisor:
         
         self.engine = create_engine(os.environ['DATABASE_URL'])
         
+        # テーブルの作成
+        with self.engine.connect() as conn:
+            conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS ai_suggestion_history (
+                    id SERIAL PRIMARY KEY,
+                    manager_id INTEGER NOT NULL,
+                    suggestion_text TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_implemented BOOLEAN DEFAULT FALSE,
+                    implementation_date TIMESTAMP,
+                    effectiveness_rating INTEGER CHECK (effectiveness_rating BETWEEN 1 AND 5)
+                );
+            '''))
+            conn.commit()
+        
         # セッションステートの初期化
         if 'ai_cache' not in st.session_state:
             st.session_state.ai_cache = {}
@@ -93,7 +108,7 @@ class AIAdvisor:
     def get_suggestion_history(self, manager_id: int) -> pd.DataFrame:
         """特定のマネージャーのAI提案履歴を取得"""
         try:
-            query = """
+            query = text('''
                 SELECT 
                     id,
                     suggestion_text,
@@ -102,17 +117,18 @@ class AIAdvisor:
                     implementation_date,
                     effectiveness_rating
                 FROM ai_suggestion_history
-                WHERE manager_id = :manager_id
+                WHERE manager_id = %(manager_id)s
                 ORDER BY created_at DESC;
-            """
-            return pd.read_sql(
-                query, 
-                self.engine, 
+            ''')
+            
+            return pd.read_sql_query(
+                query,
+                self.engine,
                 params={'manager_id': manager_id}
             )
         except Exception as e:
             logging.error(f"提案履歴の取得中にエラーが発生: {str(e)}")
-            return pd.DataFrame()
+            return pd.DataFrame()  # エラー時は空のDataFrameを返す
 
     def update_suggestion_status(
         self, 
