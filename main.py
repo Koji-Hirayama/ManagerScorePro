@@ -107,6 +107,21 @@ elif page == "マネージャー詳細":
         trend_fig = create_trend_chart(manager_data)
         st.plotly_chart(trend_fig, use_container_width=True)
         
+        # Growth Analysis
+        st.subheader("成長分析")
+        growth_data = db.analyze_growth(st.session_state.selected_manager)
+        if not growth_data.empty:
+            growth_fig = create_growth_chart(growth_data)
+            st.plotly_chart(growth_fig, use_container_width=True)
+            
+            # 最新の成長率を表示
+            latest_growth = growth_data.iloc[0]['growth_rate']
+            st.metric(
+                label="直近の成長率",
+                value=f"{latest_growth:.1f}%",
+                delta=f"{latest_growth:.1f}%" if latest_growth > 0 else f"{latest_growth:.1f}%"
+            )
+        
         # AI Suggestions
         if ai_advisor:
             st.subheader("個別AI改善提案")

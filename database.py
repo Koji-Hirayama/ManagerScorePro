@@ -108,6 +108,41 @@ class Database:
             print(f"マネージャー詳細データ取得エラー: {str(e)}")
             raise
 
+    def analyze_growth(self, manager_id):
+        """マネージャーの成長分析を行う"""
+        try:
+            query = """
+            WITH growth_calc AS (
+                SELECT 
+                    e1.*,
+                    LAG(e1.evaluation_date) OVER (ORDER BY e1.evaluation_date) as prev_date,
+                    (e1.communication_score + e1.support_score + 
+                     e1.goal_management_score + e1.leadership_score + 
+                     e1.problem_solving_score + e1.strategy_score) / 6.0 as avg_score,
+                    LAG((e1.communication_score + e1.support_score + 
+                         e1.goal_management_score + e1.leadership_score + 
+                         e1.problem_solving_score + e1.strategy_score) / 6.0) 
+                    OVER (ORDER BY e1.evaluation_date) as prev_avg_score
+                FROM evaluations e1
+                WHERE e1.manager_id = %s
+                ORDER BY e1.evaluation_date DESC
+            )
+            SELECT 
+                *,
+                CASE 
+                    WHEN prev_avg_score IS NOT NULL 
+                    THEN (avg_score - prev_avg_score) / prev_avg_score * 100 
+                    ELSE 0 
+                END as growth_rate
+            FROM growth_calc;
+            """
+            print(f"マネージャーID {manager_id} の成長分析を実行中...")
+            df = pd.read_sql(query, self.conn, params=(manager_id,))
+            print(f"分析完了: {len(df)}件の評価データを分析")
+            return df
+        except Exception as e:
+            print(f"成長分析エラー: {str(e)}")
+            raise
     def insert_sample_data(self):
         """サンプルデータを投入する関数"""
         try:

@@ -52,3 +52,25 @@ def create_trend_chart(history_df):
     )
     
     return fig
+
+
+def create_growth_chart(history_df):
+    """成長率の推移を可視化"""
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatter(
+        x=history_df['evaluation_date'],
+        y=history_df['growth_rate'],
+        mode='lines+markers',
+        name='成長率',
+        line=dict(color='#2E8B57')
+    ))
+    
+    fig.update_layout(
+        title="成長率の推移",
+        xaxis_title="評価日",
+        yaxis_title="成長率 (%)",
+        showlegend=True
+    )
+    
+    return fig
