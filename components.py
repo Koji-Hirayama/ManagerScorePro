@@ -6,45 +6,45 @@ def display_manager_list(managers_df):
         st.warning("マネージャーデータが見つかりません")
         return
 
-    # フィルターコントロール
+    # フィルター入力フィールドの追加
     st.subheader("🔍 フィルター設定")
-    filter_cols = st.columns([1, 1])
     
-    with filter_cols[0]:
+    col1, col2, col3 = st.columns([2, 2, 1])
+    
+    with col1:
         name_filter = st.text_input(
-            "名前で検索",
-            placeholder="マネージャー名を入力...",
-            help="マネージャーの名前で部分一致検索できます（大文字小文字区別なし）"
-        ).strip()
+            "🔍 名前で検索",
+            key="name_filter",
+            help="マネージャーの名前で部分一致検索（大文字小文字区別なし）"
+        )
     
-    with filter_cols[1]:
-        departments = ['全て'] + sorted(managers_df['department'].unique().tolist())
-        dept_filter = st.selectbox(
-            "部門でフィルター",
-            departments,
+    with col2:
+        department_filter = st.selectbox(
+            "🏢 部門でフィルター",
+            options=["全て"] + sorted(managers_df["department"].unique().tolist()),
+            key="department_filter",
             help="特定の部門のマネージャーのみを表示"
         )
+    
+    with col3:
+        if st.button("🔄 リセット", use_container_width=True):
+            # セッションステートのクリア
+            st.session_state.name_filter = ""
+            st.session_state.department_filter = "全て"
+            st.rerun()
 
-    # フィルタリングの適用
+    # フィルタリングロジックの実装
     filtered_df = managers_df.copy()
-    
-    # 名前でのフィルタリング（部分一致、大文字小文字区別なし）
+
     if name_filter:
-        filtered_df = filtered_df[
-            filtered_df['name'].str.lower().str.contains(
-                name_filter.lower(), 
-                na=False
-            )
-        ]
+        filtered_df = filtered_df[filtered_df["name"].str.contains(name_filter, case=False, na=False)]
+
+    if department_filter != "全て":
+        filtered_df = filtered_df[filtered_df["department"] == department_filter]
+
+    # フィルター後のデータ件数表示
+    st.markdown(f"**表示件数**: {len(filtered_df)}件")
     
-    # 部門でのフィルタリング
-    if dept_filter != '全て':
-        filtered_df = filtered_df[filtered_df['department'] == dept_filter]
-    # フィルタリング結果のカウント表示
-    st.markdown(f"**表示中**: {len(filtered_df)}名のマネージャー")
-    st.markdown("---")
-
-
     if filtered_df.empty:
         st.info("条件に一致するマネージャーが見つかりません")
         return
@@ -101,8 +101,8 @@ def display_manager_list(managers_df):
         st.markdown("### ⚡ アクション")
     st.markdown("<hr style='margin: 0.5rem 0'>", unsafe_allow_html=True)
 
-    # マネージャーリストの表示
-    for _, manager in managers_df.iterrows():
+    # フィルタリング後のマネージャーリストの表示
+    for _, manager in filtered_df.iterrows():
         with st.container():
             st.markdown('<div class="manager-row">', unsafe_allow_html=True)
             cols = st.columns([2, 6, 1])
