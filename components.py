@@ -6,19 +6,25 @@ def display_manager_list(managers_df):
         st.warning("マネージャーデータが見つかりません")
         return
 
-    # フィルター入力フィールドの追加
-    st.subheader("🔍 フィルター設定")
+    # セッションステートの初期化
+    if 'sort_column' not in st.session_state:
+        st.session_state.sort_column = 'name'
+    if 'sort_order' not in st.session_state:
+        st.session_state.sort_order = True  # True: 昇順, False: 降順
+
+    # フィルターとソート設定
+    st.subheader("🔍 フィルター & ソート設定")
     
-    col1, col2, col3 = st.columns([2, 2, 1])
+    filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1])
     
-    with col1:
+    with filter_col1:
         name_filter = st.text_input(
             "🔍 名前で検索",
             key="name_filter",
             help="マネージャーの名前で部分一致検索（大文字小文字区別なし）"
         )
     
-    with col2:
+    with filter_col2:
         department_filter = st.selectbox(
             "🏢 部門でフィルター",
             options=["全て"] + sorted(managers_df["department"].unique().tolist()),
@@ -26,12 +32,48 @@ def display_manager_list(managers_df):
             help="特定の部門のマネージャーのみを表示"
         )
     
-    with col3:
+    with filter_col3:
         if st.button("🔄 リセット", use_container_width=True):
             # セッションステートのクリア
             st.session_state.name_filter = ""
             st.session_state.department_filter = "全て"
+            st.session_state.sort_column = 'name'
+            st.session_state.sort_order = True
             st.rerun()
+
+    # ソート設定
+    sort_col1, sort_col2 = st.columns([3, 1])
+    
+    with sort_col1:
+        sort_options = {
+            'name': '👤 名前',
+            'department': '🏢 部門',
+            'avg_communication': '🗣️ コミュニケーション',
+            'avg_support': '🤝 サポート',
+            'avg_goal': '🎯 目標管理',
+            'avg_leadership': '👥 リーダーシップ',
+            'avg_problem': '💡 問題解決力',
+            'avg_strategy': '📈 戦略'
+        }
+        
+        selected_sort = st.selectbox(
+            "並び替え項目",
+            options=list(sort_options.keys()),
+            format_func=lambda x: sort_options[x],
+            key="sort_column",
+            help="一覧の並び替えに使用する項目を選択"
+        )
+        st.session_state.sort_column = selected_sort
+
+    with sort_col2:
+        sort_order = st.selectbox(
+            "並び順",
+            options=[True, False],
+            format_func=lambda x: "⬆️ 昇順" if x else "⬇️ 降順",
+            key="sort_order",
+            help="昇順/降順を選択"
+        )
+        st.session_state.sort_order = sort_order
 
     # フィルタリングロジックの実装
     filtered_df = managers_df.copy()
@@ -41,6 +83,12 @@ def display_manager_list(managers_df):
 
     if department_filter != "全て":
         filtered_df = filtered_df[filtered_df["department"] == department_filter]
+
+    # ソートの適用
+    filtered_df = filtered_df.sort_values(
+        by=st.session_state.sort_column,
+        ascending=st.session_state.sort_order
+    )
 
     # フィルター後のデータ件数表示
     st.markdown(f"**表示件数**: {len(filtered_df)}件")
