@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta
 import pandas as pd
 import logging
+from sqlalchemy import create_engine, text
 
 # ロギング設定の初期化
 logging.basicConfig(
@@ -37,7 +38,7 @@ class AIAdvisor:
         if 'ai_model' not in st.session_state:
             # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
             # do not change this unless explicitly requested by the user
-            st.session_state.ai_model = 'gpt-4o'
+            st.session_state.ai_model = 'gpt-3.5-turbo'
         
         # キャッシュ設定
         self.cache_expiry = timedelta(hours=24)  # キャッシュの有効期限を24時間に設定
