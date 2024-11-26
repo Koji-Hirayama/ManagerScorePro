@@ -11,33 +11,47 @@ def display_manager_list(managers_df):
     <style>
     .manager-header {
         background-color: #f0f2f6;
-        padding: 1rem;
+        padding: 0.75rem;
         border-radius: 0.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
     }
     .manager-row {
-        padding: 1rem 0;
+        padding: 0.75rem 0;
         border-bottom: 1px solid #e6e6e6;
+        margin-bottom: 0.5rem;
     }
     .metric-container {
         background-color: white;
         padding: 0.5rem;
         border-radius: 0.3rem;
         border: 1px solid #e6e6e6;
+        margin: 0;
+    }
+    .metric-value {
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin: 0;
+        padding: 0;
+    }
+    .metric-label {
+        font-size: 0.9rem;
+        margin: 0;
+        padding: 0;
     }
     </style>
     """, unsafe_allow_html=True)
 
     # ヘッダーセクション
-    st.markdown('<div class="manager-header">', unsafe_allow_html=True)
-    header_cols = st.columns([2, 6, 1])
-    with header_cols[0]:
+    cols = st.columns([2, 6, 1])
+    with cols[0]:
         st.markdown("### 👤 基本情報")
-    with header_cols[1]:
+    with cols[1]:
         st.markdown("### 📊 評価スコア")
-    with header_cols[2]:
+    with cols[2]:
         st.markdown("### ⚡ アクション")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("<hr style='margin: 0.5rem 0'>", unsafe_allow_html=True)
 
     # マネージャーリストの表示
     for _, manager in managers_df.iterrows():
@@ -64,14 +78,15 @@ def display_manager_list(managers_df):
                 
                 for (label, score), col in zip(metrics.items(), metric_cols):
                     with col:
-                        st.markdown('<div class="metric-container">', unsafe_allow_html=True)
-                        st.metric(
-                            label=label,
-                            value=f"{score:.1f}",
-                            delta=f"{score:.1f}/5.0",
-                            label_visibility="visible"
+                        st.markdown(
+                            f'''
+                            <div class="metric-container">
+                                <div class="metric-label">{label}</div>
+                                <div class="metric-value">{score:.1f}/5.0</div>
+                            </div>
+                            ''',
+                            unsafe_allow_html=True
                         )
-                        st.markdown('</div>', unsafe_allow_html=True)
             
             # アクションボタン
             with cols[2]:

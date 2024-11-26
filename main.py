@@ -42,12 +42,6 @@ try:
     if managers_df.empty:
         st.warning("マネージャーデータが見つかりません")
     else:
-        # マネージャー一覧の表示
-        st.subheader("👥 マネージャー一覧")
-        display_manager_list(managers_df)
-        
-        st.markdown("---")
-        
         # 全体平均の表示
         st.subheader("📊 企業全体の評価サマリー")
         company_avg = calculate_company_average(managers_df)
@@ -65,6 +59,8 @@ try:
         with col2:
             for metric, score in company_avg.items():
                 st.metric(label=metric.title(), value=f"{score:.1f}/5.0")
+
+        st.markdown("---")
         
         # 部門別分析
         st.subheader("📈 部門別分析")
@@ -72,6 +68,12 @@ try:
         if not dept_data.empty:
             dept_fig = create_department_comparison_chart(dept_data)
             st.plotly_chart(dept_fig, use_container_width=True)
+
+        st.markdown("---")
+        
+        # マネージャー一覧の表示
+        st.subheader("👥 マネージャー一覧")
+        display_manager_list(managers_df)
         
         # AI提案
         if st.session_state.ai_advisor:
