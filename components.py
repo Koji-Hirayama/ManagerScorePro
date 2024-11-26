@@ -181,46 +181,46 @@ def display_manager_list(managers_df):
 
         # 部門ごとのマネージャー表示
         for _, manager in dept_df.iterrows():
-        with st.container():
-            st.markdown('<div class="manager-row">', unsafe_allow_html=True)
-            cols = st.columns([2, 6, 1])
-            
-            # 基本情報
-            with cols[0]:
-                st.markdown(f'<div class="manager-name">{manager["name"]}</div>', unsafe_allow_html=True)
-                st.markdown(f"**部門**: {manager['department']}")
-            
-            # スコア情報
-            with cols[1]:
-                metric_cols = st.columns(6)
-                metrics = {
-                    "🗣️ コミュニケーション": manager['avg_communication'],
-                    "🤝 サポート": manager['avg_support'],
-                    "🎯 目標管理": manager['avg_goal'],
-                    "👥 リーダーシップ": manager['avg_leadership'],
-                    "💡 問題解決力": manager['avg_problem'],
-                    "📈 戦略": manager['avg_strategy']
-                }
+            with st.container():
+                st.markdown('<div class="manager-row">', unsafe_allow_html=True)
+                cols = st.columns([2, 6, 1])
                 
-                for (label, score), col in zip(metrics.items(), metric_cols):
-                    with col:
-                        st.markdown(
-                            f'''
-                            <div class="metric-container">
-                                <div class="metric-label">{label}</div>
-                                <div class="metric-value">{score:.1f}/5.0</div>
-                            </div>
-                            ''',
-                            unsafe_allow_html=True
-                        )
-            
-            # アクションボタン
-            with cols[2]:
-                if st.button("👉 詳細", key=f"btn_manager_{manager['id']}", use_container_width=True):
-                    st.session_state.selected_manager = manager['id']
-                    st.switch_page("pages/_manager_detail.py")
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+                # 基本情報
+                with cols[0]:
+                    st.markdown(f'<div class="manager-name">{manager["name"]}</div>', unsafe_allow_html=True)
+                    st.markdown(f"**部門**: {manager['department']}")
+                
+                # スコア情報
+                with cols[1]:
+                    metric_cols = st.columns(6)
+                    metrics = {
+                        "🗣️ コミュニケーション": manager['avg_communication'],
+                        "🤝 サポート": manager['avg_support'],
+                        "🎯 目標管理": manager['avg_goal'],
+                        "👥 リーダーシップ": manager['avg_leadership'],
+                        "💡 問題解決力": manager['avg_problem'],
+                        "📈 戦略": manager['avg_strategy']
+                    }
+                    
+                    for (label, score), col in zip(metrics.items(), metric_cols):
+                        with col:
+                            st.markdown(
+                                f'''
+                                <div class="metric-container">
+                                    <div class="metric-label">{label}</div>
+                                    <div class="metric-value">{score:.1f}/5.0</div>
+                                </div>
+                                ''',
+                                unsafe_allow_html=True
+                            )
+                
+                # アクションボタン
+                with cols[2]:
+                    if st.button("👉 詳細", key=f"btn_manager_{manager['id']}", use_container_width=True):
+                        st.session_state.selected_manager = manager['id']
+                        st.switch_page("pages/_manager_detail.py")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
 
 def display_score_details(scores):
     """スコアの詳細表示"""
