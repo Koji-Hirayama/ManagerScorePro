@@ -1,3 +1,4 @@
+from ai_advisor import AIAdvisor
 import streamlit as st
 from database import DatabaseManager
 from datetime import datetime
