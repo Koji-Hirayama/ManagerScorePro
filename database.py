@@ -107,6 +107,52 @@ class Database:
         except Exception as e:
             print(f"マネージャー詳細データ取得エラー: {str(e)}")
             raise
+    def get_evaluation_metrics(self):
+        """有効な評価指標を取得"""
+        try:
+            query = """
+            SELECT id, name, description, category, weight
+            FROM evaluation_metrics
+            WHERE is_active = true
+            ORDER BY category, id;
+            """
+            return pd.read_sql(query, self.conn)
+        except Exception as e:
+            print(f"評価指標取得エラー: {str(e)}")
+            raise
+
+    def add_evaluation_metric(self, name, description, category='custom', weight=1.0):
+        """新しい評価指標を追加"""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO evaluation_metrics (name, description, category, weight)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id;
+                """, (name, description, category, weight))
+                self.conn.commit()
+                return cur.fetchone()[0]
+        except Exception as e:
+            print(f"評価指標追加エラー: {str(e)}")
+            self.conn.rollback()
+            raise
+
+    def update_metric_status(self, metric_id, is_active):
+        """評価指標の有効/無効を切り替え"""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE evaluation_metrics
+                    SET is_active = %s
+                    WHERE id = %s;
+                """, (is_active, metric_id))
+                self.conn.commit()
+                return True
+        except Exception as e:
+            print(f"評価指標ステータス更新エラー: {str(e)}")
+            self.conn.rollback()
+            raise
+
 
     def analyze_growth(self, manager_id):
         """マネージャーの成長分析を行う"""

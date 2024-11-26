@@ -34,7 +34,7 @@ except Exception as e:
 st.sidebar.title("ナビゲーション")
 page = st.sidebar.radio(
     "ページ選択",
-    ["ダッシュボード", "マネージャー詳細"],
+    ["ダッシュボード", "マネージャー詳細", "評価指標設定"],
     key="navigation"
 )
 
@@ -134,3 +134,35 @@ elif page == "マネージャー詳細":
         
     else:
         st.info("マネージャーを選択してください")
+elif page == "評価指標設定":
+    st.title("評価指標設定")
+    
+    # 現在の評価指標を表示
+    metrics_df = db.get_evaluation_metrics()
+    
+    st.subheader("現在の評価指標")
+    for _, metric in metrics_df.iterrows():
+        with st.expander(f"{metric['name']} ({metric['category']})"):
+            st.write(f"説明: {metric['description']}")
+            st.write(f"重み付け: {metric['weight']}")
+    
+    # 新しい評価指標の追加
+    st.markdown("---")
+    st.subheader("新しい評価指標の追加")
+    
+    with st.form("new_metric_form"):
+        metric_name = st.text_input("指標名")
+        metric_desc = st.text_area("説明")
+        metric_category = st.selectbox("カテゴリー", ["core", "custom"])
+        metric_weight = st.slider("重み付け", 0.1, 2.0, 1.0, 0.1)
+        
+        submit_button = st.form_submit_button("追加")
+        
+        if submit_button and metric_name and metric_desc:
+            try:
+                db.add_evaluation_metric(metric_name, metric_desc, metric_category, metric_weight)
+                st.success("新しい評価指標が追加されました")
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"評価指標の追加中にエラーが発生しました: {str(e)}")
+
