@@ -1,3 +1,4 @@
+import os
 from ai_advisor import AIAdvisor
 import streamlit as st
 from database import DatabaseManager
@@ -71,21 +72,36 @@ try:
     
     # AI提案
     st.subheader("個別AI改善提案")
-    if not st.session_state.get('ai_advisor'):
-        st.warning("AI機能は現在利用できません。システム管理者に確認してください。")
-    else:
+    
+    # OpenAI APIキーの存在確認
+    if not os.getenv('OPENAI_API_KEY'):
+        st.error("OpenAI APIキーが設定されていません。AI機能は利用できません。")
+    elif not st.session_state.get('ai_advisor'):
+        try:
+            st.session_state.ai_advisor = AIAdvisor()
+        except Exception as e:
+            st.error(f"AI機能の初期化に失敗しました: {str(e)}")
+    
+    if st.session_state.get('ai_advisor'):
         try:
             with st.spinner("AI提案を生成中..."):
                 individual_scores = format_scores_for_ai(latest_scores)
                 ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(individual_scores)
-                if ai_suggestions and "エラー" not in ai_suggestions:
-                    st.write(ai_suggestions)
+                if ai_suggestions:
+                    if "エラー" not in ai_suggestions:
+                        st.write(ai_suggestions)
+                    else:
+                        st.warning("AI提案の生成中にエラーが発生しました。しばらく時間をおいて再度お試しください。")
                 else:
-                    st.warning("AI提案の生成中にエラーが発生しました。しばらく時間をおいて再度お試しください。")
+                    st.warning("AI提案を生成できませんでした。")
         except Exception as e:
-            st.error(f"AI提案の生成中にエラーが発生しました: {str(e)}")
-            if st.session_state.ai_advisor:
-                st.session_state.ai_advisor = AIAdvisor()  # AIアドバイザーを再初期化
+            st.error("AI提案の生成中にエラーが発生しました。")
+            st.exception(e)  # デバッグ情報を表示
+            # AIアドバイザーの再初期化を試みる
+            try:
+                st.session_state.ai_advisor = AIAdvisor()
+            except:
+                pass
             
     # レポート生成セクション
     st.markdown("---")
