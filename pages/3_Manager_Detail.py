@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 import streamlit as st
+import pandas as pd
 from database import DatabaseManager
 from visualization import create_radar_chart, create_trend_chart, create_growth_chart
 from components import display_score_details
@@ -153,7 +154,8 @@ try:
                             st.markdown("#### 提案内容")
                             st.write(suggestion['suggestion_text'])
                             
-                            if suggestion['feedback_text']:
+                            # NaN値のチェックを追加
+                            if pd.notna(suggestion['feedback_text']):
                                 st.markdown("#### フィードバック履歴")
                                 st.info(suggestion['feedback_text'])
                             
@@ -162,7 +164,7 @@ try:
                             with col1:
                                 is_implemented = st.checkbox(
                                     "実装済み",
-                                    value=suggestion['is_implemented'],
+                                    value=bool(suggestion['is_implemented']),  # bool型に変換
                                     key=f"impl_{suggestion['id']}"
                                 )
                             
@@ -170,7 +172,7 @@ try:
                                 effectiveness = st.select_slider(
                                     "効果評価",
                                     options=range(1, 6),
-                                    value=suggestion['effectiveness_rating'] or 3,
+                                    value=int(suggestion['effectiveness_rating'] if pd.notna(suggestion['effectiveness_rating']) else 3),
                                     format_func=lambda x: ["非常に低い", "低い", "普通", "高い", "非常に高い"][x-1],
                                     key=f"effect_{suggestion['id']}"
                                 )
