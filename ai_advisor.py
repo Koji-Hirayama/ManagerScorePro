@@ -4,6 +4,7 @@ import streamlit as st
 from typing import Dict, Optional, Tuple
 import json
 from datetime import datetime, timedelta
+import pandas as pd
 
 class AIAdvisor:
     def __init__(self):
