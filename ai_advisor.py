@@ -1,8 +1,9 @@
 from openai import OpenAI
 import os
 import streamlit as st
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import json
+from datetime import datetime, timedelta
 
 class AIAdvisor:
     def __init__(self):
@@ -22,11 +23,24 @@ class AIAdvisor:
             # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
             # do not change this unless explicitly requested by the user
             st.session_state.ai_model = 'gpt-4o'
+        
+        # キャッシュ設定
+        self.cache_expiry = timedelta(hours=24)  # キャッシュの有効期限を24時間に設定
 
     def _get_cache_key(self, scores: Dict[str, float]) -> str:
         """スコアから一意のキャッシュキーを生成"""
         sorted_scores = sorted(scores.items())
         return json.dumps(sorted_scores)
+
+    def _clean_expired_cache(self):
+        """期限切れのキャッシュエントリを削除"""
+        now = datetime.now()
+        expired_keys = []
+        for key, (_, expires_at) in st.session_state.ai_cache.items():
+            if now > expires_at:
+                expired_keys.append(key)
+        for key in expired_keys:
+            del st.session_state.ai_cache[key]
 
     def _get_debug_response(self, scores: Dict[str, float]) -> str:
         """デバッグモード用のダミーレスポンスを生成"""
@@ -56,10 +70,13 @@ class AIAdvisor:
             if self.debug_mode:
                 return self._get_debug_response(scores)
 
-            # キャッシュチェック
+            # キャッシュのクリーニングと確認
+            self._clean_expired_cache()
             cache_key = self._get_cache_key(scores)
             if cache_key in st.session_state.ai_cache:
-                return st.session_state.ai_cache[cache_key]
+                suggestion, expires_at = st.session_state.ai_cache[cache_key]
+                if datetime.now() <= expires_at:
+                    return suggestion
 
             # AI提案生成
             prompt = f"""
@@ -90,8 +107,9 @@ class AIAdvisor:
             if not suggestion:
                 raise ValueError("AIからの応答が空でした")
 
-            # キャッシュに保存
-            st.session_state.ai_cache[cache_key] = suggestion
+            # キャッシュに保存（有効期限付き）
+            expires_at = datetime.now() + self.cache_expiry
+            st.session_state.ai_cache[cache_key] = (suggestion, expires_at)
             # API呼び出し回数をインクリメント
             st.session_state.api_calls_count += 1
             

@@ -231,7 +231,7 @@ def display_manager_list(managers_df):
                 with cols[2]:
                     if st.button("👉 詳細", key=f"btn_manager_{manager['id']}", use_container_width=True):
                         st.session_state.selected_manager = manager['id']
-                        st.switch_page("pages/3_manager_detail.py")
+                        st.switch_page("pages/3_manager_detail.py")  # Streamlitはファイル名を小文字として扱います
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
