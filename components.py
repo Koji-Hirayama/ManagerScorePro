@@ -30,12 +30,12 @@ def display_manager_list(managers_df):
                     print(f"スコア計算エラー - マネージャー {manager['name']}: {str(e)}")
                     st.error("スコアの計算中にエラーが発生しました")
                 
-            # UUIDを使用してユニークなキーを生成
             unique_key = f"btn_manager_{manager['id']}_{manager['department']}"
             if st.button(f"{manager['name']}の詳細を見る", key=unique_key):
                 st.session_state.selected_manager = manager['id']
-                st.session_state.page = 'マネージャー詳細'
-                st.rerun()
+                st.session_state.page = "マネージャー詳細"
+                # 直接ページ遷移を実行
+                st.switch_page("pages/manager_detail.py")
     except Exception as e:
         print(f"マネージャー一覧表示エラー: {str(e)}")
         st.error("マネージャー一覧の表示中にエラーが発生しました")
