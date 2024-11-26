@@ -1,9 +1,61 @@
 import streamlit as st
 
 def display_manager_list(managers_df):
-    """マネージャー一覧を構造化されたリストで表示"""
+    """マネージャー一覧を構造化されたリストで表示（フィルタリング機能付き）"""
     if managers_df.empty:
         st.warning("マネージャーデータが見つかりません")
+        return
+
+    # フィルターコントロール
+    st.subheader("🔍 フィルター設定")
+    filter_cols = st.columns([2, 2, 1])
+    
+    with filter_cols[0]:
+        name_filter = st.text_input(
+            "名前で検索",
+            placeholder="マネージャー名を入力...",
+            help="マネージャーの名前で検索できます"
+        )
+    
+    with filter_cols[1]:
+        departments = ['全て'] + sorted(managers_df['department'].unique().tolist())
+        dept_filter = st.selectbox(
+            "部門でフィルター",
+            departments,
+            help="特定の部門のマネージャーのみを表示"
+        )
+    
+    with filter_cols[2]:
+        score_filter = st.slider(
+            "最小平均スコア",
+            min_value=1.0,
+            max_value=5.0,
+            value=1.0,
+            step=0.5,
+            help="指定したスコア以上のマネージャーを表示"
+        )
+
+    # フィルタリングの適用
+    filtered_df = managers_df.copy()
+    
+    if name_filter:
+        filtered_df = filtered_df[filtered_df['name'].str.contains(name_filter, case=False, na=False)]
+    
+    if dept_filter != '全て':
+        filtered_df = filtered_df[filtered_df['department'] == dept_filter]
+    
+    # 平均スコアの計算とフィルタリング
+    score_columns = ['avg_communication', 'avg_support', 'avg_goal', 
+                    'avg_leadership', 'avg_problem', 'avg_strategy']
+    filtered_df['average_score'] = filtered_df[score_columns].mean(axis=1)
+    filtered_df = filtered_df[filtered_df['average_score'] >= score_filter]
+    # フィルタリング結果のカウント表示
+    st.markdown(f"**表示中**: {len(filtered_df)}名のマネージャー")
+    st.markdown("---")
+
+
+    if filtered_df.empty:
+        st.info("条件に一致するマネージャーが見つかりません")
         return
 
     # カスタムCSS
