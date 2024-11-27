@@ -178,12 +178,12 @@ try:
                                 )
                                 
                                 # フィードバックセクション
-                                st.markdown("#### フィードバック")
+                                st.markdown("### フィードバック :red[*]")
                                 feedback_text = st.text_area(
-                                    "フィードバックコメント :red[*]",
+                                    "フィードバックコメント",
                                     key=f"feedback_{suggestion['id']}",
                                     placeholder="提案の効果や改善点について具体的に記入してください",
-                                    help="提案の実装結果や効果、今後の改善点などを記録します",
+                                    help="提案の実装結果や効果、今後の改善点などを記録します（必須）",
                                     max_chars=500
                                 )
 
@@ -193,11 +193,14 @@ try:
 
                                 # フィードバック履歴の表示
                                 if pd.notna(suggestion['feedback_text']):
-                                    st.markdown("##### 過去のフィードバック")
-                                    st.info(
-                                        f"📝 {suggestion['feedback_text']}\n"
-                                        f"🕒 記録日時: {suggestion['created_at'].strftime('%Y年%m月%d日 %H:%M')}"
-                                    )
+                                    st.markdown("#### 過去のフィードバック履歴")
+                                    for i, feedback in enumerate(suggestion['feedback_text'].split('\n---\n'), 1):
+                                        if feedback.strip():
+                                            st.info(
+                                                f"📝 フィードバック #{i}\n"
+                                                f"{feedback.strip()}\n"
+                                                f"🕒 {suggestion['created_at'].strftime('%Y年%m月%d日 %H:%M')}"
+                                            )
 
                                 # 実装状態と効果評価のバッジ表示
                                 status_col1, status_col2 = st.columns(2)
@@ -210,14 +213,24 @@ try:
                                         rating_emoji = ["⭐"] * int(suggestion['effectiveness_rating'])
                                         st.markdown(f"効果評価: {''.join(rating_emoji)}")
                             
-                            if st.button("状態を更新", key=f"update_{suggestion['id']}", type="primary"):
-                                st.session_state.ai_advisor.update_suggestion_status(
-                                    suggestion['id'],
-                                    is_implemented=is_implemented,
-                                    effectiveness_rating=effectiveness,
-                                    feedback_text=feedback_text
-                                )
-                                st.success("提案の状態を更新しました")
+                                # バリデーションと送信確認
+                                if st.button("状態を更新", key=f"update_{suggestion['id']}", type="primary"):
+                                    if not feedback_text.strip():
+                                        st.error("フィードバックコメントは必須項目です")
+                                    else:
+                                        if st.button("更新を確定しますか？", key=f"confirm_{suggestion['id']}"):
+                                            # 現在のフィードバックと過去のフィードバックを結合
+                                            current_feedback = suggestion['feedback_text'] if pd.notna(suggestion['feedback_text']) else ""
+                                            new_feedback = f"{feedback_text}\n---\n{current_feedback}" if current_feedback else feedback_text
+                                            
+                                            st.session_state.ai_advisor.update_suggestion_status(
+                                                suggestion['id'],
+                                                is_implemented=is_implemented,
+                                                effectiveness_rating=effectiveness,
+                                                feedback_text=new_feedback
+                                            )
+                                            st.success("提案の状態を更新しました")
+                                            st.balloons()  # 視覚的なフィードバック
                 else:
                     st.info("まだAI提案の履歴がありません")
                 
