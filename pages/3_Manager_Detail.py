@@ -11,41 +11,7 @@ from ai_advisor import AIAdvisor
 
 st.title("マネージャー詳細評価")
 
-# サイドバーにAI設定を追加
-with st.sidebar:
-    st.subheader("AI設定")
-    
-    # AIモデルの選択（デフォルトはgpt-3.5-turbo）
-    if 'ai_model' not in st.session_state:
-        st.session_state.ai_model = 'gpt-3.5-turbo'
 
-    # サイドバーにAIモデル選択を追加
-    st.session_state.ai_model = st.sidebar.selectbox(
-        "AIモデルの選択",
-        options=['gpt-3.5-turbo', 'gpt-4'],
-        help="より高度な提案にはGPT-4を、より速い応答にはGPT-3.5を選択してください。"
-    )
-    
-    cache_hours = st.slider(
-        "キャッシュ有効期限（時間）",
-        min_value=1,
-        max_value=72,
-        value=24,
-        help="AI提案のキャッシュを保持する時間を設定します"
-    )
-    if 'ai_advisor' in st.session_state:
-        st.session_state.ai_advisor.cache_expiry = timedelta(hours=cache_hours)
-        
-        # キャッシュ状態の表示
-        stats = st.session_state.ai_advisor.cache_stats
-        st.markdown("### キャッシュ状態")
-        st.write(f"総エントリー数: {stats['total_entries']}")
-        st.write(f"有効: {stats['valid_entries']}")
-        st.write(f"期限切れ: {stats['expired_entries']}")
-        
-        if st.button("キャッシュをクリア"):
-            st.session_state.ai_advisor.clear_cache()
-            st.success("キャッシュをクリアしました")
 
 if not st.session_state.get('selected_manager'):
     st.info("ダッシュボードからマネージャーを選択してください")
