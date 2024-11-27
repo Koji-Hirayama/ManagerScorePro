@@ -71,66 +71,85 @@ try:
         if st.session_state.ai_advisor:
             st.subheader("🤖 AI改善提案・履歴管理")
             
-            # AI提案の生成と表示
             try:
+                # AI提案の生成と表示
                 col1, col2 = st.columns([2, 1])
+                
                 with col1:
-                    ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(company_avg)
-                    st.markdown("### 最新の提案")
-                    st.write(ai_suggestions)
+                    st.markdown("### 🤖 AI改善提案")
+                    if st.button("✨ 新しい提案を生成", type="primary"):
+                        with st.spinner("AI提案を生成中..."):
+                            ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(company_avg)
+                            if ai_suggestions:
+                                st.markdown("### 最新の提案")
+                                st.write(ai_suggestions)
+                                # 提案を保存
+                                try:
+                                    st.session_state.ai_advisor.save_suggestion(
+                                        manager_id=None,  # 企業全体の提案
+                                        suggestion_text=ai_suggestions
+                                    )
+                                    st.success("新しい提案が生成され、履歴に保存されました")
+                                except Exception as e:
+                                    st.error(f"提案の保存中にエラーが発生しました: {str(e)}")
                 
                 with col2:
                     # AI提案の実装状況の統計
-                    suggestion_stats = db.execute_query("""
+                    try:
+                        stats_query = """
+                            SELECT 
+                                COUNT(*) as total_suggestions,
+                                SUM(CASE WHEN is_implemented THEN 1 ELSE 0 END) as implemented_count,
+                                ROUND(AVG(CASE WHEN effectiveness_rating IS NOT NULL 
+                                    THEN effectiveness_rating ELSE NULL END), 1) as avg_effectiveness
+                            FROM ai_suggestion_history
+                            WHERE manager_id IS NULL;
+                        """
+                        suggestion_stats = db.execute_query(stats_query)
+                        if suggestion_stats and len(suggestion_stats) > 0:
+                            stats = suggestion_stats[0]
+                            st.metric("総提案数", stats['total_suggestions'])
+                            if stats['total_suggestions'] > 0:
+                                implemented_rate = (stats['implemented_count'] / stats['total_suggestions'] * 100)
+                                st.metric("実装率", f"{implemented_rate:.1f}%")
+                            if stats['avg_effectiveness']:
+                                st.metric("平均効果", f"{stats['avg_effectiveness']}/5.0")
+                    except Exception as e:
+                        st.warning("統計情報の取得中にエラーが発生しました")
+                
+                # AI提案履歴の表示
+                try:
+                    st.markdown("### 📋 最近の提案履歴")
+                    recent_suggestions = db.execute_query("""
                         SELECT 
-                            COUNT(*) as total_suggestions,
-                            SUM(CASE WHEN is_implemented THEN 1 ELSE 0 END) as implemented_count,
-                            ROUND(AVG(CASE WHEN effectiveness_rating IS NOT NULL 
-                                THEN effectiveness_rating ELSE NULL END), 1) as avg_effectiveness
-                        FROM ai_suggestion_history;
+                            sh.id,
+                            COALESCE(m.name, '企業全体') as manager_name,
+                            COALESCE(m.department, '-') as department,
+                            sh.suggestion_text,
+                            sh.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo' as created_at,
+                            sh.is_implemented,
+                            sh.effectiveness_rating
+                        FROM ai_suggestion_history sh
+                        LEFT JOIN managers m ON sh.manager_id = m.id
+                        ORDER BY sh.created_at DESC
+                        LIMIT 5;
                     """)
-                    if suggestion_stats:
-                        stats = suggestion_stats[0]
-                        st.metric("総提案数", stats['total_suggestions'])
-                        implemented_rate = (stats['implemented_count'] / stats['total_suggestions'] * 100 
-                                        if stats['total_suggestions'] > 0 else 0)
-                        st.metric("実装率", f"{implemented_rate:.1f}%")
-                        if stats['avg_effectiveness']:
-                            st.metric("平均効果", f"{stats['avg_effectiveness']}/5.0")
+                    
+                    if recent_suggestions:
+                        for suggestion in recent_suggestions:
+                            with st.expander(f"提案 ({suggestion['created_at'].strftime('%Y/%m/%d %H:%M')}) - {suggestion['manager_name']} ({suggestion['department']})"):
+                                st.write(suggestion['suggestion_text'])
+                                status = "✅ 実装済み" if suggestion['is_implemented'] else "⏳ 未実装"
+                                effectiveness = f"効果: {'⭐' * suggestion['effectiveness_rating'] if suggestion['effectiveness_rating'] else '未評価'}"
+                                st.caption(f"{status} | {effectiveness}")
+                    else:
+                        st.info("まだAI提案の履歴がありません")
+                        
+                except Exception as e:
+                    st.error(f"AI提案履歴の表示中にエラーが発生しました: {str(e)}")
 
             except Exception as e:
                 st.warning("AI提案の生成中にエラーが発生しました")
-            
-            # AI提案履歴の表示
-            try:
-                st.markdown("### 📋 最近の提案履歴")
-                recent_suggestions = db.execute_query("""
-                    SELECT 
-                        sh.id,
-                        m.name as manager_name,
-                        m.department,
-                        sh.suggestion_text,
-                        sh.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Tokyo' as created_at,
-                        sh.is_implemented,
-                        sh.effectiveness_rating
-                    FROM ai_suggestion_history sh
-                    JOIN managers m ON sh.manager_id = m.id
-                    ORDER BY sh.created_at DESC
-                    LIMIT 5;
-                """)
-                
-                if recent_suggestions:
-                    for suggestion in recent_suggestions:
-                        with st.expander(f"提案 ({suggestion['created_at'].strftime('%Y/%m/%d %H:%M')}) - {suggestion['manager_name']} ({suggestion['department']})"):
-                            st.write(suggestion['suggestion_text'])
-                            status = "✅ 実装済み" if suggestion['is_implemented'] else "⏳ 未実装"
-                            effectiveness = f"効果: {'⭐' * suggestion['effectiveness_rating'] if suggestion['effectiveness_rating'] else '未評価'}"
-                            st.caption(f"{status} | {effectiveness}")
-                else:
-                    st.info("まだAI提案の履歴がありません")
-                    
-            except Exception as e:
-                st.error(f"AI提案履歴の表示中にエラーが発生しました: {str(e)}")
 
         st.markdown("---")
         
