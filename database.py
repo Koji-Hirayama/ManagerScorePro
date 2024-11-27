@@ -84,46 +84,48 @@ class DatabaseManager:
 
         try:
             # まずマネージャーの存在確認
-            check_query = "SELECT COUNT(*) FROM managers WHERE id = %(manager_id)s"
+            check_query = "SELECT COUNT(*) FROM managers WHERE id = :manager_id"
             with self.engine.connect() as conn:
                 result = conn.execute(text(check_query), {'manager_id': manager_id})
                 if result.scalar() == 0:
                     logging.error(f"指定されたID {manager_id} のマネージャーが見つかりません")
                     return pd.DataFrame()
 
-            query = """
-            SELECT 
-                m.id,
-                m.name,
-                m.department,
-                e.evaluation_date,
-                e.communication_score,
-                e.support_score,
-                e.goal_management_score,
-                e.leadership_score,
-                e.problem_solving_score,
-                e.strategy_score
-            FROM managers m
-            LEFT JOIN evaluations e ON m.id = e.manager_id
-            WHERE m.id = %(manager_id)s
-            ORDER BY e.evaluation_date DESC;
-            """
-            df = pd.read_sql_query(
-                query,
-                self.engine,
-                params={'manager_id': manager_id}
-            )
-            
-            if df.empty:
-                logging.info(f"マネージャー (ID: {manager_id}) の評価データが存在しません")
-            return df
+                # メインクエリの実行
+                query = """
+                SELECT 
+                    m.id,
+                    m.name,
+                    m.department,
+                    e.evaluation_date,
+                    e.communication_score,
+                    e.support_score,
+                    e.goal_management_score,
+                    e.leadership_score,
+                    e.problem_solving_score,
+                    e.strategy_score
+                FROM managers m
+                LEFT JOIN evaluations e ON m.id = e.manager_id
+                WHERE m.id = :manager_id
+                ORDER BY e.evaluation_date DESC;
+                """
+                result = conn.execute(text(query), {'manager_id': manager_id})
+                df = pd.DataFrame(result.fetchall(), columns=result.keys())
+                
+                if df.empty:
+                    logging.warning(f"マネージャー (ID: {manager_id}) の評価データが存在しません")
+                return df
 
         except Exception as e:
-            logging.error(f"マネージャー詳細の取得中にエラーが発生: {str(e)}")
-            if "no such column" in str(e).lower():
-                logging.error("データベーススキーマが正しくありません")
-            elif "operational error" in str(e).lower():
-                logging.error("データベース接続エラーが発生しました")
+            error_msg = str(e).lower()
+            if "no such column" in error_msg:
+                logging.error(f"データベーススキーマエラー: {str(e)}")
+            elif "operational error" in error_msg:
+                logging.error(f"データベース接続エラー: {str(e)}")
+            elif "syntax error" in error_msg:
+                logging.error(f"SQLクエリ構文エラー: {str(e)}")
+            else:
+                logging.error(f"マネージャー詳細の取得中に予期せぬエラーが発生: {str(e)}")
             return pd.DataFrame()
 
     def get_department_statistics(self):
