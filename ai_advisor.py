@@ -89,22 +89,27 @@ class AIAdvisor:
         """キャッシュをクリア"""
         st.session_state.ai_cache = {}
 
-    def save_suggestion(self, manager_id: int, suggestion_text: str):
+    def save_suggestion(self, manager_id: Optional[int], suggestion_text: str):
         """AIの提案を履歴として保存"""
         try:
+            if not suggestion_text or not suggestion_text.strip():
+                raise ValueError("提案テキストが空です")
+
             with self.engine.connect() as conn:
                 query = """
                     INSERT INTO ai_suggestion_history (manager_id, suggestion_text)
-                    VALUES (:manager_id, :suggestion_text);
+                    VALUES (:manager_id, :suggestion_text)
+                    RETURNING id;
                 """
-                conn.execute(text(query), {
+                result = conn.execute(text(query), {
                     'manager_id': manager_id,
-                    'suggestion_text': suggestion_text
+                    'suggestion_text': suggestion_text.strip()
                 })
                 conn.commit()
+                return result.scalar()
         except Exception as e:
             logging.error(f"提案の保存中にエラーが発生: {str(e)}")
-            raise
+            raise ValueError(f"提案の保存に失敗しました: {str(e)}")
 
     def get_suggestion_history(self, manager_id: int) -> pd.DataFrame:
         """特定のマネージャーのAI提案履歴を取得"""

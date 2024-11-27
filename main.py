@@ -84,14 +84,22 @@ try:
                                 st.markdown("### 最新の提案")
                                 st.write(ai_suggestions)
                                 # 提案を保存
-                                try:
-                                    st.session_state.ai_advisor.save_suggestion(
-                                        manager_id=None,  # 企業全体の提案
-                                        suggestion_text=ai_suggestions
-                                    )
-                                    st.success("新しい提案が生成され、履歴に保存されました")
-                                except Exception as e:
-                                    st.error(f"提案の保存中にエラーが発生しました: {str(e)}")
+                                if ai_suggestions and isinstance(ai_suggestions, str):
+                                    try:
+                                        suggestion_id = st.session_state.ai_advisor.save_suggestion(
+                                            manager_id=None,  # 企業全体の提案
+                                            suggestion_text=ai_suggestions
+                                        )
+                                        if suggestion_id:
+                                            st.success("新しい提案が生成され、履歴に保存されました")
+                                        else:
+                                            st.warning("提案は生成されましたが、保存に失敗しました")
+                                    except ValueError as ve:
+                                        st.error(f"提案の保存中にエラーが発生しました: {str(ve)}")
+                                    except Exception as e:
+                                        st.error(f"予期せぬエラーが発生しました: {str(e)}")
+                                else:
+                                    st.error("有効な提案が生成されませんでした")
                 
                 with col2:
                     # AI提案の実装状況の統計

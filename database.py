@@ -29,11 +29,16 @@ class DatabaseManager:
         """SQLクエリを実行し、結果を辞書のリストとして返す"""
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(text(query), params or {})
-                return [dict(row) for row in result]
+                if params is None:
+                    params = {}
+                # パラメータが辞書でない場合は変換
+                if not isinstance(params, dict):
+                    params = dict(params)
+                result = conn.execute(text(query), params)
+                return [dict(row._mapping) for row in result]
         except Exception as e:
             logging.error(f"クエリ実行エラー: {str(e)}")
-            return []
+            raise
 
     def get_all_managers(self):
         """全マネージャーの情報を取得"""
