@@ -1,8 +1,6 @@
 import streamlit as st
-import os
-from database import get_database_session
+from database import DatabaseManager
 from models import AIModelConfig, CacheConfig
-from sqlalchemy.sql import select
 import logging
 
 def init_settings():
@@ -12,38 +10,56 @@ def init_settings():
         st.session_state.cache_settings = {}
 
 def load_settings():
-    db = get_database_session()
     try:
-        # AIモデル設定の読み込み
-        ai_model_config = db.execute(select(AIModelConfig)).first()
-        if ai_model_config:
-            st.session_state.ai_model_settings = ai_model_config[0].__dict__
+        db = DatabaseManager()
+        with db.Session() as session:
+            # AIモデル設定の読み込み
+            ai_model_config = session.query(AIModelConfig).first()
+            if ai_model_config:
+                st.session_state.ai_model_settings = {
+                    'model_name': ai_model_config.model_name,
+                    'temperature': ai_model_config.temperature,
+                    'max_tokens': ai_model_config.max_tokens
+                }
 
-        # キャッシュ設定の読み込み
-        cache_config = db.execute(select(CacheConfig)).first()
-        if cache_config:
-            st.session_state.cache_settings = cache_config[0].__dict__
+            # キャッシュ設定の読み込み
+            cache_config = session.query(CacheConfig).first()
+            if cache_config:
+                st.session_state.cache_settings = {
+                    'enabled': cache_config.enabled,
+                    'ttl_minutes': cache_config.ttl_minutes,
+                    'max_size_mb': cache_config.max_size_mb
+                }
     except Exception as e:
         logging.error(f"設定の読み込み中にエラーが発生しました: {str(e)}")
-    finally:
-        db.close()
+        st.error("設定の読み込み中にエラーが発生しました。")
 
 def save_settings(settings_type, settings_data):
-    db = get_database_session()
     try:
-        if settings_type == "ai_model":
-            config = AIModelConfig(**settings_data)
-            db.merge(config)
-        elif settings_type == "cache":
-            config = CacheConfig(**settings_data)
-            db.merge(config)
-        db.commit()
-        st.success(f"{settings_type}の設定が保存されました。")
+        db = DatabaseManager()
+        with db.Session() as session:
+            if settings_type == "ai_model":
+                config = session.query(AIModelConfig).first()
+                if not config:
+                    config = AIModelConfig()
+                    session.add(config)
+                config.model_name = settings_data['model_name']
+                config.temperature = settings_data['temperature']
+                config.max_tokens = settings_data['max_tokens']
+            elif settings_type == "cache":
+                config = session.query(CacheConfig).first()
+                if not config:
+                    config = CacheConfig()
+                    session.add(config)
+                config.enabled = settings_data['enabled']
+                config.ttl_minutes = settings_data['ttl_minutes']
+                config.max_size_mb = settings_data['max_size_mb']
+            
+            session.commit()
+            st.success(f"{settings_type}の設定が保存されました。")
     except Exception as e:
-        db.rollback()
+        logging.error(f"設定の保存中にエラーが発生しました: {str(e)}")
         st.error(f"設定の保存中にエラーが発生しました: {str(e)}")
-    finally:
-        db.close()
 
 def render_ai_model_settings():
     st.subheader("AIモデル設定")
