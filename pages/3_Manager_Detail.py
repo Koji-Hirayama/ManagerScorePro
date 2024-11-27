@@ -20,10 +20,21 @@ if not st.session_state.get('selected_manager'):
 try:
     # データベース初期化
     db = DatabaseManager()
+    
+    if not isinstance(st.session_state.selected_manager, int):
+        st.error("無効なマネージャーIDです。ダッシュボードに戻って、マネージャーを再選択してください。")
+        st.stop()
+
     manager_data = db.get_manager_details(st.session_state.selected_manager)
     
     if manager_data.empty:
-        st.warning("マネージャーデータが見つかりません")
+        st.warning("🔍 マネージャーデータが見つかりません")
+        st.info("以下を確認してください：\n"
+                "1. マネージャーが正しく選択されているか\n"
+                "2. データベースに評価データが存在するか\n"
+                "3. システム管理者に連絡する")
+        if st.button("📱 ダッシュボードに戻る"):
+            st.switch_page("main.py")
         st.stop()
         
     latest_scores = manager_data.iloc[0]

@@ -78,7 +78,19 @@ class DatabaseManager:
 
     def get_manager_details(self, manager_id: int):
         """特定のマネージャーの詳細情報を取得"""
+        if not isinstance(manager_id, int):
+            logging.error("無効なmanager_id形式です")
+            return pd.DataFrame()
+
         try:
+            # まずマネージャーの存在確認
+            check_query = "SELECT COUNT(*) FROM managers WHERE id = %(manager_id)s"
+            with self.engine.connect() as conn:
+                result = conn.execute(text(check_query), {'manager_id': manager_id})
+                if result.scalar() == 0:
+                    logging.error(f"指定されたID {manager_id} のマネージャーが見つかりません")
+                    return pd.DataFrame()
+
             query = """
             SELECT 
                 m.id,
@@ -93,16 +105,25 @@ class DatabaseManager:
                 e.strategy_score
             FROM managers m
             LEFT JOIN evaluations e ON m.id = e.manager_id
-            WHERE m.id = :manager_id
+            WHERE m.id = %(manager_id)s
             ORDER BY e.evaluation_date DESC;
             """
-            return pd.read_sql_query(
+            df = pd.read_sql_query(
                 query,
                 self.engine,
                 params={'manager_id': manager_id}
             )
+            
+            if df.empty:
+                logging.info(f"マネージャー (ID: {manager_id}) の評価データが存在しません")
+            return df
+
         except Exception as e:
             logging.error(f"マネージャー詳細の取得中にエラーが発生: {str(e)}")
+            if "no such column" in str(e).lower():
+                logging.error("データベーススキーマが正しくありません")
+            elif "operational error" in str(e).lower():
+                logging.error("データベース接続エラーが発生しました")
             return pd.DataFrame()
 
     def get_department_statistics(self):
