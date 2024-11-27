@@ -126,10 +126,68 @@ try:
             try:
                 # 新しい提案の生成
                 with st.expander("✨ 新しい提案を生成", expanded=True):
-                    if st.button("提案を生成"):
+                    # プロンプトテンプレートの管理
+                    templates_df = st.session_state.ai_advisor.get_prompt_templates()
+                    
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        selected_template = st.selectbox(
+                            "プロンプトテンプレートを選択",
+                            options=[None] + templates_df['id'].tolist(),
+                            format_func=lambda x: "デフォルト" if x is None else templates_df[templates_df['id'] == x]['name'].iloc[0],
+                            help="使用するプロンプトテンプレートを選択してください"
+                        )
+                    
+                    with col2:
+                        if st.button("新規テンプレート", type="secondary"):
+                            st.session_state.show_template_form = True
+                    
+                    # テンプレート情報の表示
+                    if selected_template is not None:
+                        template_info = templates_df[templates_df['id'] == selected_template].iloc[0]
+                        with st.expander("テンプレート詳細", expanded=False):
+                            st.markdown(f"**説明**: {template_info['description']}")
+                            st.text_area("テンプレート内容", template_info['template_text'], disabled=True)
+                    
+                    # 新規テンプレートフォーム
+                    if st.session_state.get('show_template_form', False):
+                        st.markdown("### 新規テンプレートの作成")
+                        with st.form("new_template_form"):
+                            template_name = st.text_input(
+                                "テンプレート名",
+                                max_chars=100,
+                                help="テンプレートの識別名を入力してください"
+                            )
+                            template_description = st.text_area(
+                                "説明",
+                                help="テンプレートの用途や特徴を説明してください"
+                            )
+                            template_text = st.text_area(
+                                "テンプレート本文",
+                                help="プロンプトのテンプレートを入力してください。{scores[項目名]}で評価スコアを参照できます"
+                            )
+                            
+                            if st.form_submit_button("保存"):
+                                try:
+                                    st.session_state.ai_advisor.add_prompt_template(
+                                        template_name,
+                                        template_description,
+                                        template_text
+                                    )
+                                    st.success("新しいテンプレートを保存しました")
+                                    st.session_state.show_template_form = False
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"テンプレートの保存中にエラーが発生しました: {str(e)}")
+                    
+                    # 提案生成ボタン
+                    if st.button("提案を生成", type="primary"):
                         with st.spinner("AI提案を生成中..."):
                             individual_scores = format_scores_for_ai(latest_scores)
-                            ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(individual_scores)
+                            ai_suggestions = st.session_state.ai_advisor.generate_improvement_suggestions(
+                                individual_scores,
+                                selected_template
+                            )
                             if ai_suggestions and "エラー" not in ai_suggestions:
                                 # 提案を保存
                                 st.session_state.ai_advisor.save_suggestion(

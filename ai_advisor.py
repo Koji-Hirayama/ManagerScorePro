@@ -187,7 +187,64 @@ class AIAdvisor:
 
 これはデバッグモードでの表示です。実際のAPI呼び出しは行われていません。"""
 
-    def generate_improvement_suggestions(self, scores: Dict[str, float]) -> str:
+    def get_prompt_templates(self) -> pd.DataFrame:
+        """利用可能なプロンプトテンプレートを取得"""
+        try:
+            query = """
+            SELECT id, name, description, template_text
+            FROM ai_prompt_templates
+            WHERE is_active = true
+            ORDER BY name;
+            """
+            return pd.read_sql_query(query, self.engine)
+        except Exception as e:
+            logging.error(f"プロンプトテンプレート取得エラー: {str(e)}")
+            return pd.DataFrame()
+
+    def add_prompt_template(self, name: str, description: str, template_text: str) -> int:
+        """新しいプロンプトテンプレートを追加"""
+        try:
+            query = """
+            INSERT INTO ai_prompt_templates (name, description, template_text)
+            VALUES (:name, :description, :template_text)
+            RETURNING id;
+            """
+            with self.engine.connect() as conn:
+                result = conn.execute(text(query), {
+                    'name': name,
+                    'description': description,
+                    'template_text': template_text
+                })
+                conn.commit()
+                return result.scalar()
+        except Exception as e:
+            logging.error(f"プロンプトテンプレート追加エラー: {str(e)}")
+            raise
+
+    def update_prompt_template(self, template_id: int, name: str, description: str, template_text: str):
+        """プロンプトテンプレートを更新"""
+        try:
+            query = """
+            UPDATE ai_prompt_templates
+            SET name = :name,
+                description = :description,
+                template_text = :template_text,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :template_id;
+            """
+            with self.engine.connect() as conn:
+                conn.execute(text(query), {
+                    'template_id': template_id,
+                    'name': name,
+                    'description': description,
+                    'template_text': template_text
+                })
+                conn.commit()
+        except Exception as e:
+            logging.error(f"プロンプトテンプレート更新エラー: {str(e)}")
+            raise
+
+    def generate_improvement_suggestions(self, scores: Dict[str, float], template_id: Optional[int] = None) -> str:
         """改善提案を生成（キャッシュ、デバッグモード、API制限付き）"""
         try:
             # APIコール回数制限チェック
@@ -201,14 +258,26 @@ class AIAdvisor:
 
             # キャッシュのクリーニングと確認
             self._clean_expired_cache()
-            cache_key = self._get_cache_key(scores)
+            cache_key = f"{self._get_cache_key(scores)}_{template_id}"
             if cache_key in st.session_state.ai_cache:
                 suggestion, expires_at = st.session_state.ai_cache[cache_key]
                 if datetime.now() <= expires_at:
                     return suggestion
 
-            # AI提案生成
-            prompt = f"""
+            # テンプレートの取得
+            if template_id:
+                query = "SELECT template_text FROM ai_prompt_templates WHERE id = :template_id;"
+                with self.engine.connect() as conn:
+                    result = conn.execute(text(query), {'template_id': template_id})
+                    template = result.scalar()
+                if template:
+                    prompt = template.format(scores=scores)
+                else:
+                    template_id = None  # テンプレートが見つからない場合はデフォルトを使用
+
+            # デフォルトテンプレート
+            if not template_id:
+                prompt = f"""
 以下のマネージャーの評価スコアに基づいて改善提案を行ってください：
 - コミュニケーション・フィードバック: {scores.get('communication', 0)}/5
 - サポート・エンパワーメント: {scores.get('support', 0)}/5
